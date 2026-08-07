@@ -4,14 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 
-type Product = { id: number; name: string; family: string; price: number; note: string; accent: string };
+type Product = { id: number; name: string; family: string; price: number; note: string; accent: string; image: string };
 
 const products: Product[] = [
-  { id: 1, name: "Mango", family: "Frutal · Dulce", price: 6990, note: "Mango, durazno y vainilla", accent: "#d79c32" },
-  { id: 2, name: "Bubble Gum", family: "Dulce · Juvenil", price: 6990, note: "Chicle, frutilla y azúcar", accent: "#e7afaf" },
-  { id: 3, name: "Verbena", family: "Floral · Fresco", price: 6990, note: "Verbena, lavanda y limón", accent: "#9c8bb0" },
-  { id: 4, name: "Cedrón, limón y menta", family: "Fresco · Cítrico", price: 6990, note: "Cedrón, cítricos y menta", accent: "#a8a34c" },
-  { id: 5, name: "Red Velvet", family: "Dulce · Gourmand", price: 6990, note: "Cacao, crema y frutos rojos", accent: "#a84135" },
+  { id: 1, name: "Mango", family: "Frutal · Dulce", price: 6990, note: "Mango, durazno y vainilla", accent: "#d79c32", image: "/products/mango.png" },
+  { id: 2, name: "Bubble Gum", family: "Dulce · Juvenil", price: 6990, note: "Chicle, frutilla y azúcar", accent: "#e7afaf", image: "/products/bubble-gum.png" },
+  { id: 3, name: "Verbena", family: "Floral · Fresco", price: 6990, note: "Verbena, lavanda y limón", accent: "#9c8bb0", image: "/products/verbena.png" },
+  { id: 4, name: "Cedrón, limón y menta", family: "Fresco · Cítrico", price: 6990, note: "Cedrón, cítricos y menta", accent: "#a8a34c", image: "/products/cedron-limon-menta.png" },
+  { id: 5, name: "Red Velvet", family: "Dulce · Gourmand", price: 6990, note: "Cacao, crema y frutos rojos", accent: "#a84135", image: "/products/red-velvet.png" },
 ];
 
 const money = (value: number) => new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(value);
@@ -57,7 +57,7 @@ export default function Storefront() {
     </section>
 
     <section className="catalog" id="productos"><div className="section-title"><p>NUESTROS AROMAS</p><h2>Encuentra tu favorito</h2><i/></div><div className="filters" id="aromas"><button>TODOS</button><button>FRUTALES</button><button>FLORALES</button><button>FRESCOS</button><button>DULCES</button></div>
-      <div className="product-list">{visible.map(product => <article className="product-card" key={product.id}><div className="product-photo" style={{ "--card-accent": product.accent } as React.CSSProperties}><ProductBottle accent={product.accent}/><i/></div><h3>{product.name}</h3><p>{product.family}</p><strong>{money(product.price)}</strong><button onClick={() => add(product.id)}>AGREGAR AL CARRITO</button></article>)}</div>
+      <div className="product-list">{visible.map(product => <article className="product-card" key={product.id}><div className="product-photo"><Image src={product.image} alt={`Aromatizante ${product.name} de Aroma Studio`} fill sizes="(max-width: 850px) 50vw, 20vw"/></div><h3>{product.name}</h3><p>{product.family}</p><strong>{money(product.price)}</strong><button onClick={() => add(product.id)}>AGREGAR AL CARRITO</button></article>)}</div>
       {visible.length === 0 && <p className="no-results">No encontramos aromas con esa búsqueda.</p>}<a className="btn btn-outline" href="#productos">VER TODOS LOS AROMAS</a>
     </section>
 
