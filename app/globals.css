@@ -24,7 +24,7 @@
 .header .icon-button{display:grid;place-items:center;width:36px;height:36px;padding:0;font-size:21px;line-height:1}
 .header .brand--image{transition:transform .35s ease,filter .35s ease}
 .header .brand--image:hover{transform:scale(1.025);filter:contrast(1.08)}
-.header .icon-button{transition:transform .25s ease,background-color .25s ease;border-radius .25s ease}
+.header .icon-button{transition:transform .25s ease,background-color .25s ease,border-radius .25s ease}
 .header .icon-button:hover{transform:translateY(-2px);background:#f5f3ef;border-radius:50%}
 .header .icon-button:focus-visible{outline:1px solid #171717;outline-offset:2px;border-radius:50%}
 .header .bag-button b{top:0;right:-1px;min-width:14px;height:14px;font-size:7px;line-height:14px}
