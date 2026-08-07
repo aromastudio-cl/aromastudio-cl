@@ -51,11 +51,10 @@ export default function Storefront() {
     {searchOpen && <div className="search"><input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Busca por aroma, nota o nombre…" /><button onClick={() => setSearchOpen(false)}>Cerrar</button></div>}
 
     <section className="hero" id="inicio">
-      <div className="hero__copy"><p className="eyebrow">PERFUMERÍA DE AUTOR · SANTIAGO</p><h1>Descubre la esencia que habla de ti.</h1><p>Fragancias únicas, creadas en pequeñas partidas para convertir cada momento en un recuerdo.</p><a className="button button--dark" href="#fragancias">DESCUBRIR FRAGANCIAS <span>→</span></a></div>
-      <div className="hero__visual"><span className="hero__word">AROMA</span><div className="halo" /><Bottle large /><p className="vertical-note">EAU DE PARFUM · 50 ML</p></div>
+      <div className="hero__copy"><h1>Descubre tu<br/>esencia</h1><p>FRAGANCIAS QUE HABLAN DE TI</p><a className="button button--dark" href="#fragancias">COMPRAR AHORA</a></div>
     </section>
 
-    <section className="benefits" aria-label="Beneficios"><div><b>◇</b><span><strong>ENVÍO RÁPIDO</strong><small>A todo Chile</small></span></div><div><b>✦</b><span><strong>FRAGANCIAS PREMIUM</strong><small>Alta concentración</small></span></div><div><b>▢</b><span><strong>COMPRA SEGURA</strong><small>Pago 100% protegido</small></span></div><div><b>♧</b><span><strong>REGALO ESPECIAL</strong><small>En compras seleccionadas</small></span></div></section>
+    <section className="benefits" aria-label="Beneficios"><div><b>♧</b><span><strong>ENVÍO RÁPIDO</strong><small>A todo Chile</small></span></div><div><b>✦</b><span><strong>FRAGANCIAS PREMIUM</strong><small>Alta concentración</small></span></div><div><b>▢</b><span><strong>COMPRA SEGURA</strong><small>Pago 100% protegido</small></span></div><div><b>♧</b><span><strong>REGALOS EXCLUSIVOS</strong><small>En compras seleccionadas</small></span></div></section>
 
     <section className="collections" id="colecciones"><div className="section-heading"><p>ENCUENTRA TU AROMA</p><h2>Nuestras colecciones</h2></div><div className="collection-grid">
       <article className="collection collection--dark"><span>01</span><h3>Intensas</h3><p>Profundas y magnéticas</p><a href="#fragancias">EXPLORAR →</a></article>
