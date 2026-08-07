@@ -14,10 +14,19 @@
 .header .icon-button.menu-button{display:none}
 .header .brand--image{grid-column:1}
 .header .nav{grid-column:2;justify-self:center;margin:0;align-items:center;gap:36px}
-.header .nav a{font-size:9px;font-weight:500;letter-spacing:.095em;white-space:nowrap}
+.header .nav a{position:relative;padding:12px 0;font-family:var(--font-sans),Montserrat,Arial,sans-serif;font-size:11px;font-weight:500;letter-spacing:.13em;white-space:nowrap;transition:color .25s ease,transform .25s ease}
+.header .nav a::before{content:"";position:absolute;left:50%;right:50%;bottom:5px;height:1px;background:#171717;transition:left .3s ease,right .3s ease}
+.header .nav a:hover{opacity:1;transform:translateY(-1px)}
+.header .nav a:hover::before,.header .nav a:focus-visible::before{left:0;right:0}
+.header .nav a:focus-visible{outline:none}
 .header .nav a[href="#fragancias"]::after{content:"⌄";display:inline-block;margin-left:6px;font-size:11px;transform:translateY(-1px)}
 .header .header-actions{grid-column:3;width:auto;justify-self:end;align-items:center;gap:9px}
 .header .icon-button{display:grid;place-items:center;width:36px;height:36px;padding:0;font-size:21px;line-height:1}
+.header .brand--image{transition:transform .35s ease,filter .35s ease}
+.header .brand--image:hover{transform:scale(1.025);filter:contrast(1.08)}
+.header .icon-button{transition:transform .25s ease,background-color .25s ease;border-radius .25s ease}
+.header .icon-button:hover{transform:translateY(-2px);background:#f5f3ef;border-radius:50%}
+.header .icon-button:focus-visible{outline:1px solid #171717;outline-offset:2px;border-radius:50%}
 .header .bag-button b{top:0;right:-1px;min-width:14px;height:14px;font-size:7px;line-height:14px}
 .header-icon{display:block;position:relative;width:18px;height:18px;color:#171717}
 .header-icon--search::before{content:"";position:absolute;width:10px;height:10px;border:1.5px solid currentColor;border-radius:50%;left:1px;top:1px}
@@ -43,7 +52,7 @@
 .hero{min-height:0;height:clamp(370px,34vw,470px);display:block;position:relative;background:#2d2925 url('/hero-perfume-v2.png') center 48%/cover no-repeat}
 .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,9,8,.28),transparent 49%);pointer-events:none}
 .hero__copy{height:100%;padding:0 8.5vw;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;color:#fff;position:relative;z-index:2}
-.hero h1{max-width:none;margin:0 0 10px;font:500 clamp(43px,4.15vw,60px)/.98 var(--serif);letter-spacing:-.025em;text-shadow:0 2px 15px #0004}
+.hero h1{max-width:none;margin:0 0 10px;font-family:var(--font-display),Georgia,serif;font-size:clamp(43px,4.15vw,60px);font-weight:500;line-height:.98;letter-spacing:-.025em;text-shadow:0 2px 15px #0004}
 .hero__copy>p:not(.eyebrow){max-width:none;margin:0 0 24px;color:#fff;font:600 11px/1.2 var(--sans);letter-spacing:.14em}
 .hero .button{min-width:145px;justify-content:center;gap:0;padding:16px 22px;background:#080808;font-size:9px;font-weight:600}
 .hero__product-mark{position:absolute;z-index:2;left:66.6%;top:52.5%;width:clamp(54px,5.2vw,74px);transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;color:#171717;text-align:center}
