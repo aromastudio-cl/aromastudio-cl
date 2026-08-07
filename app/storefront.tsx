@@ -43,9 +43,9 @@ export default function Storefront() {
         <a href="#inicio">INICIO</a><a href="#fragancias">FRAGANCIAS</a><a href="#colecciones">COLECCIONES</a><a href="#nosotros">NOSOTROS</a><a href="#contacto">CONTACTO</a>
       </nav>
       <div className="header-actions">
-        <button className="icon-button" onClick={() => setSearchOpen(!searchOpen)} aria-label="Buscar">⌕</button>
-        <Link href="/admin" className="icon-button" aria-label="Panel administrador">♙</Link>
-        <button className="icon-button bag-button" onClick={() => setCartOpen(true)} aria-label={`Bolsa con ${cart.length} productos`}>▱<b>{cart.length}</b></button>
+        <button className="icon-button" onClick={() => setSearchOpen(!searchOpen)} aria-label="Buscar"><span className="header-icon header-icon--search" /></button>
+        <Link href="/admin" className="icon-button" aria-label="Panel administrador"><span className="header-icon header-icon--user" /></Link>
+        <button className="icon-button bag-button" onClick={() => setCartOpen(true)} aria-label={`Bolsa con ${cart.length} productos`}><span className="header-icon header-icon--bag" /><b>{cart.length}</b></button>
       </div>
     </header>
     {searchOpen && <div className="search"><input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Busca por aroma, nota o nombre…" /><button onClick={() => setSearchOpen(false)}>Cerrar</button></div>}
