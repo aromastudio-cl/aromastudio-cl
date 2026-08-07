@@ -40,12 +40,15 @@
 }
 
 /* Hero fotográfico del diseño de referencia. */
-.hero{min-height:0;height:520px;display:block;position:relative;background:#2d2925 url('/hero-perfume-v2.png') center center/cover no-repeat}
+.hero{min-height:0;height:clamp(370px,34vw,470px);display:block;position:relative;background:#2d2925 url('/hero-perfume-v2.png') center 48%/cover no-repeat}
 .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,9,8,.28),transparent 49%);pointer-events:none}
 .hero__copy{height:100%;padding:0 8.5vw;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;color:#fff;position:relative;z-index:2}
-.hero h1{max-width:none;margin:0 0 14px;font:500 clamp(51px,5vw,72px)/.98 var(--serif);letter-spacing:-.025em;text-shadow:0 2px 15px #0004}
-.hero__copy>p:not(.eyebrow){max-width:none;margin:0 0 29px;color:#fff;font:600 13px/1.2 var(--sans);letter-spacing:.14em}
+.hero h1{max-width:none;margin:0 0 10px;font:500 clamp(43px,4.15vw,60px)/.98 var(--serif);letter-spacing:-.025em;text-shadow:0 2px 15px #0004}
+.hero__copy>p:not(.eyebrow){max-width:none;margin:0 0 24px;color:#fff;font:600 11px/1.2 var(--sans);letter-spacing:.14em}
 .hero .button{min-width:145px;justify-content:center;gap:0;padding:16px 22px;background:#080808;font-size:9px;font-weight:600}
+.hero__product-mark{position:absolute;z-index:2;left:66.6%;top:52.5%;width:clamp(54px,5.2vw,74px);transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;color:#171717;text-align:center}
+.hero__product-mark img{display:block;width:100%;aspect-ratio:1;object-fit:cover;mix-blend-mode:multiply}
+.hero__product-mark small{margin-top:3px;font:600 clamp(3px,.3vw,5px)/1 var(--sans);letter-spacing:.12em;white-space:nowrap}
 .benefits{height:90px;padding:0 8vw;background:#fff}
 .benefits>div{gap:16px}
 .benefits b{font:27px/1 var(--serif);color:#252525}
@@ -53,11 +56,12 @@
 .benefits small{font:10px var(--sans);color:#555}
 
 @media(max-width:800px){
-  .hero{height:520px;background-position:64% center}
+  .hero{height:460px;background-position:64% center}
   .hero::after{background:linear-gradient(90deg,rgba(8,7,6,.66),rgba(8,7,6,.08) 80%)}
   .hero__copy{padding:0 24px;justify-content:flex-end;padding-bottom:54px}
   .hero h1{font-size:48px}
   .hero__copy>p:not(.eyebrow){font-size:10px;margin-bottom:22px}
+  .hero__product-mark{left:63%;top:51%;width:52px}
   .benefits{height:auto;padding:8px 10px}
 }
 

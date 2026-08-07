@@ -52,6 +52,7 @@ export default function Storefront() {
 
     <section className="hero" id="inicio">
       <div className="hero__copy"><h1>Descubre tu<br/>esencia</h1><p>FRAGANCIAS QUE HABLAN DE TI</p><a className="button button--dark" href="#fragancias">COMPRAR AHORA</a></div>
+      <span className="hero__product-mark" aria-hidden="true"><img src="/logo.png" alt="" /><small>EXTRAIT DE PARFUM</small></span>
     </section>
 
     <section className="benefits" aria-label="Beneficios"><div><b>♧</b><span><strong>ENVÍO RÁPIDO</strong><small>A todo Chile</small></span></div><div><b>✦</b><span><strong>FRAGANCIAS PREMIUM</strong><small>Alta concentración</small></span></div><div><b>▢</b><span><strong>COMPRA SEGURA</strong><small>Pago 100% protegido</small></span></div><div><b>♧</b><span><strong>REGALOS EXCLUSIVOS</strong><small>En compras seleccionadas</small></span></div></section>
