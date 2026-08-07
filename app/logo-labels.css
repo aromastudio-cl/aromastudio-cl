@@ -1,0 +1,25 @@
+.product-bottle span {
+  width: 48px;
+  height: 53px;
+  padding: 2px;
+  border: 1px solid #8d765e;
+  background: #f3eee5;
+  color: #111;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-bottle span img {
+  width: 36px;
+  height: 34px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.product-bottle span small {
+  margin-top: -5px;
+  font-size: 3px;
+  letter-spacing: .1em;
+}
