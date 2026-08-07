@@ -55,7 +55,12 @@ export default function Storefront() {
       <span className="hero__product-mark" aria-hidden="true"><img src="/logo-hd.png" alt="" /><small>EXTRAIT DE PARFUM</small></span>
     </section>
 
-    <section className="benefits" aria-label="Beneficios"><div><b>♧</b><span><strong>ENVÍO RÁPIDO</strong><small>A todo Chile</small></span></div><div><b>✦</b><span><strong>FRAGANCIAS PREMIUM</strong><small>Alta concentración</small></span></div><div><b>▢</b><span><strong>COMPRA SEGURA</strong><small>Pago 100% protegido</small></span></div><div><b>♧</b><span><strong>REGALOS EXCLUSIVOS</strong><small>En compras seleccionadas</small></span></div></section>
+    <section className="benefits" aria-label="Beneficios">
+      <div><i className="benefit-icon benefit-icon--truck" aria-hidden="true"/><span><strong>ENVÍO RÁPIDO</strong><small>A todo Chile</small></span></div>
+      <div><i className="benefit-icon benefit-icon--medal" aria-hidden="true">✦</i><span><strong>FRAGANCIAS PREMIUM</strong><small>Alta concentración</small></span></div>
+      <div><i className="benefit-icon benefit-icon--lock" aria-hidden="true"/><span><strong>COMPRA SEGURA</strong><small>Pago 100% protegido</small></span></div>
+      <div><i className="benefit-icon benefit-icon--gift" aria-hidden="true"/><span><strong>REGALOS EXCLUSIVOS</strong><small>En compras seleccionadas</small></span></div>
+    </section>
 
     <section className="collections" id="colecciones"><div className="section-heading"><p>ENCUENTRA TU AROMA</p><h2>Nuestras colecciones</h2></div><div className="collection-grid">
       <article className="collection collection--dark"><span>01</span><h3>Intensas</h3><p>Profundas y magnéticas</p><a href="#fragancias">EXPLORAR →</a></article>
