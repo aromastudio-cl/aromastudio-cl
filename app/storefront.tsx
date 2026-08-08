@@ -51,7 +51,7 @@ export default function Storefront() {
       });
   }, []);
   const categories = useMemo(() => ["Todos", ...Array.from(new Set(products.map(product => product.category)))], [products]);
-  const visible = useMemo(() => products.filter(p => (activeCategory === "Todos" || p.category === activeCategory) && `${p.name} ${p.family} ${p.note} ${p.category}`.toLowerCase().includes(query.toLowerCase())), [query, activeCategory]);
+  const visible = useMemo(() => products.filter(p => (activeCategory === "Todos" || p.category === activeCategory) && `${p.name} ${p.family} ${p.note} ${p.category}`.toLowerCase().includes(query.toLowerCase())), [products, query, activeCategory]);
   const total = cart.reduce((sum, id) => sum + (products.find(p => p.id === id)?.price ?? 0), 0);
   const notify = (text: string) => { setToast(text); window.setTimeout(() => setToast(""), 2200); };
   const add = (id: string) => { setCart(items => [...items, id]); notify("Producto agregado al carrito"); };
