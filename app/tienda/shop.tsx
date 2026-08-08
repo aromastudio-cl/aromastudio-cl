@@ -17,7 +17,9 @@ type ShopProduct = {
   price: number;
   stock: number;
   image: string;
-  variants: Array<{ id: string; name: string; price: number; promotional: boolean; format: string }>;
+  format: string;
+  variantName: string;
+  promotional: boolean;
 };
 const money = (value: number) =>
   new Intl.NumberFormat("es-CL", {
@@ -42,7 +44,7 @@ export default function Shop() {
     supabase
       .from("products")
       .select(
-        "id,name,scent_notes,price_clp,stock,categories(name,slug),product_variants(id,name,price_clp,size_value,size_unit,is_default,sort_order,active,scents(name,slug)),product_images(image_url,is_primary,sort_order)",
+        "id,name,scent_notes,price_clp,stock,categories(name,slug),product_variants(id,name,price_clp,stock,size_value,size_unit,is_default,sort_order,active,scents(name,slug)),product_images(image_url,is_primary,sort_order)",
       )
       .eq("active", true)
       .order("created_at", { ascending: false })
@@ -54,35 +56,31 @@ export default function Shop() {
           return;
         }
         setProducts(
-          (data ?? []).map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            aroma: item.product_variants?.[0]?.scents?.name ?? item.name,
-            notes: item.scent_notes ?? "",
-            category: item.categories?.name ?? "Otros",
-            categorySlug: item.categories?.slug ?? "otros",
-            price: item.price_clp,
-            stock: item.stock,
-            variants: (item.product_variants ?? [])
+          (data ?? []).flatMap((item: any) => {
+            const image = item.product_images?.find((img: any) => img.is_primary)?.image_url
+              ?? item.product_images?.sort((a: any, b: any) => a.sort_order - b.sort_order)?.[0]?.image_url
+              ?? "/logo-hd.png";
+            const variants = (item.product_variants ?? [])
               .filter((variant: any) => variant.active !== false)
-              .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-              .map((variant: any) => ({
+              .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+            return variants.map((variant: any) => {
+              const measure = variant.name.match(/(\d+)\s*ml/i)?.[1];
+              return {
                 id: variant.id,
-                name: variant.name,
+                name: item.name,
+                aroma: variant.scents?.name ?? variants[0]?.scents?.name ?? item.name,
+                notes: item.scent_notes ?? "",
+                category: item.categories?.name ?? "Otros",
+                categorySlug: item.categories?.slug ?? "otros",
                 price: variant.price_clp,
+                stock: variant.stock,
+                variantName: variant.name,
                 promotional: /promoci[oó]n/i.test(variant.name),
-                format: variant.size_value
-                  ? `${variant.size_value} ${variant.size_unit}`
-                  : variant.name,
-              })),
-            image:
-              item.product_images?.find((img: any) => img.is_primary)
-                ?.image_url ??
-              item.product_images?.sort(
-                (a: any, b: any) => a.sort_order - b.sort_order,
-              )?.[0]?.image_url ??
-              "/logo-hd.png",
-          })),
+                format: measure ? `${measure} ml` : variant.name,
+                image,
+              };
+            });
+          }),
         );
         setLoading(false);
       });
@@ -99,7 +97,7 @@ export default function Shop() {
     [products],
   );
   const formats = useMemo(
-    () => Array.from(new Set(products.flatMap((product) => product.variants.filter((variant) => !variant.promotional).map((variant) => variant.format)))).sort((a, b) => {
+    () => Array.from(new Set(products.map((product) => product.format))).sort((a, b) => {
       const aSize = Number.parseFloat(a);
       const bSize = Number.parseFloat(b);
       if (Number.isNaN(aSize)) return 1;
@@ -115,7 +113,7 @@ export default function Shop() {
           (p) =>
             (aroma === "todos" || p.aroma === aroma) &&
             (type === "todos" || p.categorySlug === type) &&
-            (format === "todos" || p.variants.some((variant) => !variant.promotional && variant.format === format)) &&
+            (format === "todos" || p.format === format) &&
             (price === "todos" ||
               (price === "menos-10000" && p.price < 10000) ||
               (price === "10000-20000" &&
@@ -240,9 +238,7 @@ export default function Shop() {
                   <span>{product.category}</span>
                   <h2>{product.name}</h2>
                   <p>{product.notes}</p>
-                  <div className={styles.formats}>
-                    {product.variants.map((variant) => <div className={variant.promotional ? styles.promotion : ""} key={variant.id}><span>{variant.name}</span><strong>{money(variant.price)}</strong></div>)}
-                  </div>
+                  <div className={`${styles.formats} ${product.promotional ? styles.promotion : ""}`}><div><span>{product.variantName}</span><strong>{money(product.price)}</strong></div></div>
                   <button
                     disabled={product.stock === 0}
                     onClick={() => setCart((items) => [...items, product.id])}
