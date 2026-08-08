@@ -18,63 +18,6 @@ type ShopProduct = {
   stock: number;
   image: string;
 };
-const fallback: ShopProduct[] = [
-  {
-    id: "1",
-    name: "Mango",
-    aroma: "Mango",
-    notes: "Mango, durazno y vainilla",
-    category: "Home Spray",
-    categorySlug: "home-spray",
-    price: 6990,
-    stock: 28,
-    image: "/products/mango.png",
-  },
-  {
-    id: "2",
-    name: "Bubble Gum",
-    aroma: "Bubble Gum",
-    notes: "Chicle, frutilla y azúcar",
-    category: "Home Spray",
-    categorySlug: "home-spray",
-    price: 6990,
-    stock: 19,
-    image: "/products/bubble-gum.png",
-  },
-  {
-    id: "3",
-    name: "Verbena",
-    aroma: "Verbena",
-    notes: "Verbena, lavanda y limón",
-    category: "Home Spray",
-    categorySlug: "home-spray",
-    price: 6990,
-    stock: 6,
-    image: "/products/verbena.png",
-  },
-  {
-    id: "4",
-    name: "Cedrón, limón y menta",
-    aroma: "Cedrón, limón y menta",
-    notes: "Cedrón, cítricos y menta",
-    category: "Home Spray",
-    categorySlug: "home-spray",
-    price: 6990,
-    stock: 3,
-    image: "/products/cedron-limon-menta.png",
-  },
-  {
-    id: "5",
-    name: "Red Velvet",
-    aroma: "Red Velvet",
-    notes: "Cacao, crema y frutos rojos",
-    category: "Home Spray",
-    categorySlug: "home-spray",
-    price: 6990,
-    stock: 0,
-    image: "/products/red-velvet.png",
-  },
-];
 const money = (value: number) =>
   new Intl.NumberFormat("es-CL", {
     style: "currency",
@@ -83,7 +26,9 @@ const money = (value: number) =>
   }).format(value);
 
 export default function Shop() {
-  const [products, setProducts] = useState(fallback),
+  const [products, setProducts] = useState<ShopProduct[]>([]),
+    [loading, setLoading] = useState(true),
+    [loadError, setLoadError] = useState(false),
     [aroma, setAroma] = useState("todos"),
     [type, setType] = useState("todos"),
     [price, setPrice] = useState("todos"),
@@ -99,10 +44,15 @@ export default function Shop() {
       )
       .eq("active", true)
       .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        if (!data?.length) return;
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("No se pudieron cargar los productos", error);
+          setLoadError(true);
+          setLoading(false);
+          return;
+        }
         setProducts(
-          data.map((item: any) => ({
+          (data ?? []).map((item: any) => ({
             id: item.id,
             name: item.name,
             aroma: item.product_variants?.[0]?.scents?.name ?? item.name,
@@ -120,6 +70,7 @@ export default function Shop() {
               "/logo-hd.png",
           })),
         );
+        setLoading(false);
       });
   }, []);
   const aromas = useMemo(
@@ -235,7 +186,11 @@ export default function Shop() {
               </select>
             </label>
           </header>
-          {visible.length ? (
+          {loading ? (
+            <div className={styles.loading} role="status" aria-live="polite">
+              <span>Cargando productos…</span>
+            </div>
+          ) : visible.length ? (
             <div className={styles.grid}>
               {visible.map((product) => (
                 <article key={product.id}>
@@ -264,9 +219,9 @@ export default function Shop() {
             </div>
           ) : (
             <div className={styles.empty}>
-              <h2>No encontramos productos</h2>
-              <p>Prueba modificando los filtros seleccionados.</p>
-              <button onClick={clear}>VER TODOS</button>
+              <h2>{loadError ? "No pudimos cargar los productos" : "No encontramos productos"}</h2>
+              <p>{loadError ? "Intenta nuevamente en unos momentos." : "Prueba modificando los filtros seleccionados."}</p>
+              {!loadError && <button onClick={clear}>VER TODOS</button>}
             </div>
           )}
         </div>

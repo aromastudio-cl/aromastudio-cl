@@ -20,7 +20,7 @@ export default function SiteHeader({ cartCount = 0, onSearch, onCart }: SiteHead
     <nav className={menuOpen ? "main-nav is-open" : "main-nav"} aria-label="Navegación principal">
       <Link href="/" onClick={() => setMenuOpen(false)}>INICIO</Link>
       <Link href="/tienda" onClick={() => setMenuOpen(false)}>TIENDA ONLINE</Link>
-      <Link href="/#productos" onClick={() => setMenuOpen(false)}>PRODUCTOS</Link>
+      <Link href="/productos" onClick={() => setMenuOpen(false)}>PRODUCTOS</Link>
       <Link href="/mayoristas" onClick={() => setMenuOpen(false)}>EMPRESAS</Link>
       <Link href="/emprendedores" onClick={() => setMenuOpen(false)}>EMPRENDEDORES</Link>
       <Link href="/#nosotros" onClick={() => setMenuOpen(false)}>NOSOTROS</Link>

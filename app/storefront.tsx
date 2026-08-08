@@ -66,7 +66,7 @@ export default function Storefront() {
       <div className="hero-content">
         <h1>Aromatizantes<br/>ambientales para ti,<br/>tu negocio o<br/><em>emprendimiento</em></h1>
         <p>Aromatizantes ambientales<br/>para cada espacio.<br/>Venta detalle y al por mayor.</p>
-        <div className="hero-actions"><Link className="hero-btn hero-btn--primary" href="/tienda">Tienda Online</Link><Link className="hero-btn hero-btn--secondary" href="/mayoristas">Mayoristas</Link><Link className="hero-btn hero-btn--tertiary" href="/emprendedores">Emprendedores</Link></div>
+        <div className="hero-actions"><Link className="hero-btn hero-btn--primary" href="/tienda">Tienda Online</Link><Link className="hero-btn hero-btn--secondary" href="/mayoristas">Empresas</Link><Link className="hero-btn hero-btn--tertiary" href="/emprendedores">Emprendedores</Link></div>
       </div>
     </section>
 
