@@ -1,0 +1,12 @@
+.businessHero {
+  background-image: url("/mayoristas-business-hero.png") !important;
+  background-position: 64% top !important;
+}
+
+@media (max-width: 900px) {
+  .businessHero { background-position: 68% top !important; }
+}
+
+@media (max-width: 600px) {
+  .businessHero { background-position: 72% top !important; }
+}

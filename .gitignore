@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-*/
 /.vinext/
 /out/
 
@@ -25,6 +26,7 @@
 # debug
 npm-debug.log*
 .dev-*.log
+.preview.log
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
@@ -39,3 +41,4 @@ yarn-error.log*
 /.wrangler/
 /outputs/
 /work/
+*.tsbuildinfo
