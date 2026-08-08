@@ -17,6 +17,7 @@ type ShopProduct = {
   price: number;
   stock: number;
   image: string;
+  variants: Array<{ id: string; name: string; price: number; promotional: boolean; format: string }>;
 };
 const money = (value: number) =>
   new Intl.NumberFormat("es-CL", {
@@ -31,6 +32,7 @@ export default function Shop() {
     [loadError, setLoadError] = useState(false),
     [aroma, setAroma] = useState("todos"),
     [type, setType] = useState("todos"),
+    [format, setFormat] = useState("todos"),
     [price, setPrice] = useState("todos"),
     [sort, setSort] = useState("destacados"),
     [cart, setCart] = useState<string[]>([]),
@@ -40,7 +42,7 @@ export default function Shop() {
     supabase
       .from("products")
       .select(
-        "id,name,scent_notes,price_clp,stock,categories(name,slug),product_variants(scents(name,slug)),product_images(image_url,is_primary,sort_order)",
+        "id,name,scent_notes,price_clp,stock,categories(name,slug),product_variants(id,name,price_clp,size_value,size_unit,is_default,sort_order,active,scents(name,slug)),product_images(image_url,is_primary,sort_order)",
       )
       .eq("active", true)
       .order("created_at", { ascending: false })
@@ -61,6 +63,18 @@ export default function Shop() {
             categorySlug: item.categories?.slug ?? "otros",
             price: item.price_clp,
             stock: item.stock,
+            variants: (item.product_variants ?? [])
+              .filter((variant: any) => variant.active !== false)
+              .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+              .map((variant: any) => ({
+                id: variant.id,
+                name: variant.name,
+                price: variant.price_clp,
+                promotional: /promoci[oó]n/i.test(variant.name),
+                format: variant.size_value
+                  ? `${variant.size_value} ${variant.size_unit}`
+                  : variant.name,
+              })),
             image:
               item.product_images?.find((img: any) => img.is_primary)
                 ?.image_url ??
@@ -84,6 +98,16 @@ export default function Shop() {
       ),
     [products],
   );
+  const formats = useMemo(
+    () => Array.from(new Set(products.flatMap((product) => product.variants.filter((variant) => !variant.promotional).map((variant) => variant.format)))).sort((a, b) => {
+      const aSize = Number.parseFloat(a);
+      const bSize = Number.parseFloat(b);
+      if (Number.isNaN(aSize)) return 1;
+      if (Number.isNaN(bSize)) return -1;
+      return aSize - bSize;
+    }),
+    [products],
+  );
   const visible = useMemo(
     () =>
       products
@@ -91,6 +115,7 @@ export default function Shop() {
           (p) =>
             (aroma === "todos" || p.aroma === aroma) &&
             (type === "todos" || p.categorySlug === type) &&
+            (format === "todos" || p.variants.some((variant) => !variant.promotional && variant.format === format)) &&
             (price === "todos" ||
               (price === "menos-10000" && p.price < 10000) ||
               (price === "10000-20000" &&
@@ -105,11 +130,12 @@ export default function Shop() {
               ? b.price - a.price
               : a.name.localeCompare(b.name),
         ),
-    [products, aroma, type, price, sort],
+    [products, aroma, type, format, price, sort],
   );
   const clear = () => {
     setAroma("todos");
     setType("todos");
+    setFormat("todos");
     setPrice("todos");
   };
   const filters = (
@@ -132,6 +158,13 @@ export default function Shop() {
               {name}
             </option>
           ))}
+        </select>
+      </label>
+      <label>
+        FORMATO
+        <select value={format} onChange={(e) => setFormat(e.target.value)}>
+          <option value="todos">Todos los formatos</option>
+          {formats.map((value) => <option key={value} value={value}>{value}</option>)}
         </select>
       </label>
       <label>
@@ -207,7 +240,9 @@ export default function Shop() {
                   <span>{product.category}</span>
                   <h2>{product.name}</h2>
                   <p>{product.notes}</p>
-                  <strong>{money(product.price)}</strong>
+                  <div className={styles.formats}>
+                    {product.variants.map((variant) => <div className={variant.promotional ? styles.promotion : ""} key={variant.id}><span>{variant.name}</span><strong>{money(variant.price)}</strong></div>)}
+                  </div>
                   <button
                     disabled={product.stock === 0}
                     onClick={() => setCart((items) => [...items, product.id])}
