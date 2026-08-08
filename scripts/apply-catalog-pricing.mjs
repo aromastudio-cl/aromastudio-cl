@@ -9,14 +9,12 @@ const supabase = createClient(
 const catalog = {
   "esencias-puras": [
     { name: "Gotario 10 ml", size_value: 10, size_unit: "ml", price_clp: 5900 },
-    { name: "Promoción 2 x 10 ml", size_value: 20, size_unit: "ml", price_clp: 10000 },
   ],
   humidificadores: [
     { name: "Humidificador", size_value: null, size_unit: "unidad", price_clp: 15000 },
   ],
   "difusor-auto": [
     { name: "Difusor auto 10 ml", size_value: 10, size_unit: "ml", price_clp: 5900 },
-    { name: "Promoción 2 x 10 ml", size_value: 20, size_unit: "ml", price_clp: 10000 },
   ],
   "mikados-varilla": [
     { name: "50 ml", size_value: 50, size_unit: "ml", price_clp: 9900 },
