@@ -1154,16 +1154,16 @@ export default function Admin() {
         )}
         {tab === "Categorías" && (
           <section className="admin-table">
-            <form key={editingCategoryId ?? "new-category"} className="category-form" onSubmit={saveCategory}>
-              <div><label>Nombre<input name="name" required defaultValue={categories.find((item) => item.id === editingCategoryId)?.name ?? ""}/></label><label>Slug<input name="slug" defaultValue={categories.find((item) => item.id === editingCategoryId)?.slug ?? ""} placeholder="Se genera automáticamente"/></label></div>
-              <div><label>Orden<input name="sort_order" type="number" min="0" defaultValue={categories.find((item) => item.id === editingCategoryId)?.sort_order ?? categories.length + 1}/></label><label className="featured-check"><input name="active" type="checkbox" defaultChecked={categories.find((item) => item.id === editingCategoryId)?.active ?? true}/> Categoría activa</label></div>
+            <form key={editingCategoryId ?? "new-category"} className="category-management-form" onSubmit={saveCategory}>
+              <div className="category-management-fields"><label>Nombre de la categoría<input name="name" required defaultValue={categories.find((item) => item.id === editingCategoryId)?.name ?? ""} placeholder="Ej. Home Spray"/></label><label>Orden<input name="sort_order" type="number" min="0" defaultValue={categories.find((item) => item.id === editingCategoryId)?.sort_order ?? categories.length + 1}/></label></div>
               <label className="image-upload">
-                Imagen de categoría
+                Foto de la categoría
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={selectCategoryImage}/>
-                <span>{compressing ? "Comprimiendo imagen…" : "Seleccionar una imagen · Se optimiza automáticamente"}</span>
+                <span>{compressing ? "Comprimiendo imagen…" : categoryImagePreview ? "Cambiar fotografía" : "Seleccionar una fotografía"}</span>
               </label>
-              {categoryImagePreview && <div className="category-image-preview"><Image src={categoryImagePreview} alt="Vista previa de categoría" fill unoptimized/></div>}
-              <button disabled={saving || compressing}>{editingCategoryId ? "GUARDAR CAMBIOS" : "CREAR CATEGORÍA"}</button>
+              {categoryImagePreview && <div className="category-management-preview"><Image src={categoryImagePreview} alt="Vista previa de categoría" fill unoptimized/></div>}
+              <label className="featured-check"><input name="active" type="checkbox" defaultChecked={categories.find((item) => item.id === editingCategoryId)?.active ?? true}/> Mostrar categoría en el sitio</label>
+              <div className="category-management-actions">{editingCategoryId && <button type="button" onClick={()=>{setEditingCategoryId(null);setCategoryImage(null);setCategoryImagePreview("")}}>CANCELAR</button>}<button disabled={saving || compressing}>{editingCategoryId ? "GUARDAR" : "CREAR CATEGORÍA"}</button></div>
             </form>
             <div><table><thead><tr><th>Imagen</th><th>Categoría</th><th>Slug</th><th>Orden</th><th>Estado</th><th>Acción</th></tr></thead><tbody>{categories.map((category) => <tr key={category.id}><td>{category.image_url ? <Image className="admin-category-image" src={category.image_url} alt={category.name} width={54} height={54} unoptimized/> : "Sin imagen"}</td><td><strong>{category.name}</strong></td><td>{category.slug}</td><td>{category.sort_order}</td><td><span className={category.active ? "ok" : "bad"}>{category.active ? "Activa" : "Inactiva"}</span></td><td><button className="admin-edit-button" onClick={() => { if (categoryImagePreview.startsWith("blob:")) URL.revokeObjectURL(categoryImagePreview); setCategoryImage(null); setCategoryImagePreview(category.image_url ?? ""); setEditingCategoryId(category.id); }}>EDITAR</button></td></tr>)}</tbody></table></div>
           </section>

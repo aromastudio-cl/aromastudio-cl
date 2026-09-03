@@ -77,8 +77,6 @@ export default function Storefront() {
       </section>
     </div>
 
-    <section className="home-faq" aria-labelledby="home-faq-title"><header><span>¿TIENES DUDAS?</span><h2 id="home-faq-title">Preguntas frecuentes</h2></header><div>{faqs.map((faq,index)=><details key={faq.id} open={index===0}><summary>{faq.question}<b aria-hidden="true">+</b></summary><p>{faq.answer}</p></details>)}</div></section>
-
     <section className="category-showcase" aria-labelledby="category-showcase-title">
       <header>
         <span>EXPLORA</span>
@@ -117,6 +115,8 @@ export default function Storefront() {
         </div>
       </div>
     </section>
+
+    <section className="home-faq" aria-labelledby="home-faq-title"><header><span>¿TIENES DUDAS?</span><h2 id="home-faq-title">Preguntas frecuentes</h2></header><div>{faqs.map((faq,index)=><details key={faq.id} open={index===0}><summary>{faq.question}<b aria-hidden="true">+</b></summary><p>{faq.answer}</p></details>)}</div></section>
 
     <SiteFooter/>
 
