@@ -1,10 +1,13 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import { SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import SiteFooter from "../site-footer";
 import SiteHeader from "../site-header";
 import { supabase } from "../../lib/supabase-browser";
+import { productVariantHref } from "../../lib/product-routes";
+import { productCategoryLabel, productCategoryRank } from "../../lib/catalog-order";
 import styles from "./tienda.module.css";
 
 type ShopProduct = {
@@ -20,6 +23,7 @@ type ShopProduct = {
   format: string;
   variantName: string;
   promotional: boolean;
+  href: string;
 };
 const money = (value: number) =>
   new Intl.NumberFormat("es-CL", {
@@ -44,7 +48,7 @@ export default function Shop() {
     supabase
       .from("products")
       .select(
-        "id,name,scent_notes,price_clp,stock,categories(name,slug),product_variants(id,name,price_clp,stock,size_value,size_unit,is_default,sort_order,active,scents(name,slug)),product_images(image_url,is_primary,sort_order)",
+        "id,slug,name,scent_notes,price_clp,stock,categories(name,slug),product_variants(id,name,price_clp,stock,size_value,size_unit,is_default,sort_order,active,scents(name,slug)),product_images(variant_id,image_url,is_primary,sort_order)",
       )
       .eq("active", true)
       .order("created_at", { ascending: false })
@@ -57,7 +61,7 @@ export default function Shop() {
         }
         setProducts(
           (data ?? []).flatMap((item: any) => {
-            const image = item.product_images?.find((img: any) => img.is_primary)?.image_url
+            const fallbackImage = item.product_images?.find((img: any) => img.is_primary)?.image_url
               ?? item.product_images?.sort((a: any, b: any) => a.sort_order - b.sort_order)?.[0]?.image_url
               ?? "/logo-hd.png";
             const variants = (item.product_variants ?? [])
@@ -70,14 +74,15 @@ export default function Shop() {
                 name: item.name,
                 aroma: variant.scents?.name ?? variants[0]?.scents?.name ?? item.name,
                 notes: item.scent_notes ?? "",
-                category: item.categories?.name ?? "Otros",
+                category: productCategoryLabel(item.categories?.slug ?? "otros", item.categories?.name ?? "Otros"),
                 categorySlug: item.categories?.slug ?? "otros",
                 price: variant.price_clp,
                 stock: variant.stock,
                 variantName: variant.name,
                 promotional: /promoci[oó]n/i.test(variant.name),
                 format: measure ? `${measure} ml` : variant.name,
-                image,
+                image: item.product_images?.find((img: any) => img.variant_id === variant.id && img.is_primary)?.image_url ?? fallbackImage,
+                href: productVariantHref(item.slug, variant.size_value, variant.size_unit),
               };
             });
           }),
@@ -93,7 +98,7 @@ export default function Shop() {
     () =>
       Array.from(
         new Map(products.map((p) => [p.categorySlug, p.category])).entries(),
-      ),
+      ).sort(([a], [b]) => productCategoryRank(a) - productCategoryRank(b)),
     [products],
   );
   const formats = useMemo(
@@ -121,13 +126,19 @@ export default function Shop() {
                 p.price <= 20000) ||
               (price === "mas-20000" && p.price > 20000)),
         )
-        .sort((a, b) =>
-          sort === "menor"
+        .sort((a, b) => {
+          if (sort === "destacados") {
+            const categoryDifference =
+              productCategoryRank(a.categorySlug) - productCategoryRank(b.categorySlug);
+            if (categoryDifference !== 0) return categoryDifference;
+          }
+
+          return sort === "menor"
             ? a.price - b.price
             : sort === "mayor"
               ? b.price - a.price
-              : a.name.localeCompare(b.name),
-        ),
+              : a.name.localeCompare(b.name);
+        }),
     [products, aroma, type, format, price, sort],
   );
   const clear = () => {
@@ -225,7 +236,7 @@ export default function Shop() {
             <div className={styles.grid}>
               {visible.map((product) => (
                 <article key={product.id}>
-                  <div className={styles.photo}>
+                  <Link href={product.href} className={styles.photo}>
                     <Image
                       src={product.image}
                       alt={product.name}
@@ -234,9 +245,9 @@ export default function Shop() {
                       unoptimized={product.image.startsWith("http")}
                     />
                     {product.stock === 0 && <b>AGOTADO</b>}
-                  </div>
+                  </Link>
                   <span>{product.category}</span>
-                  <h2>{product.name}</h2>
+                  <h2><Link href={product.href}>{product.name}</Link></h2>
                   <p>{product.notes}</p>
                   <div className={`${styles.formats} ${product.promotional ? styles.promotion : ""}`}><div><span>{product.variantName}</span><strong>{money(product.price)}</strong></div></div>
                   <button

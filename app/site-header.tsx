@@ -23,7 +23,7 @@ export default function SiteHeader({ cartCount = 0, onSearch, onCart }: SiteHead
       <Link href="/productos" onClick={() => setMenuOpen(false)}>PRODUCTOS</Link>
       <Link href="/mayoristas" onClick={() => setMenuOpen(false)}>EMPRESAS</Link>
       <Link href="/emprendedores" onClick={() => setMenuOpen(false)}>EMPRENDEDORES</Link>
-      <Link href="/#nosotros" onClick={() => setMenuOpen(false)}>NOSOTROS</Link>
+      <Link href="/nosotros" onClick={() => setMenuOpen(false)}>NOSOTROS</Link>
     </nav>
     <div className="header-tools">
       {onSearch ? <button className="header-tool" onClick={onSearch} aria-label="Buscar productos"><Search aria-hidden="true" strokeWidth={1.7}/><span className="tool-label">BUSCAR</span></button> : <Link className="header-tool" href="/#productos" aria-label="Buscar productos"><Search aria-hidden="true" strokeWidth={1.7}/><span className="tool-label">BUSCAR</span></Link>}

@@ -7,12 +7,14 @@ import {
   BadgePercent,
   LayoutDashboard,
   Package,
+  MessageSquare,
   ShoppingBag,
   Trash2,
   Users,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase-browser";
 import { compressProductImage } from "../../lib/compress-product-image";
+import ProductLabel from "../product-label";
 
 type Product = {
   id: string | number;
@@ -23,7 +25,17 @@ type Product = {
   active: boolean;
   image?: string;
 };
-type Scent = { id: string; name: string; slug: string; notes: string | null };
+type Category = { id: string; name: string; slug: string };
+type Scent = {
+  id: string;
+  name: string;
+  slug: string;
+  notes: string | null;
+  description: string | null;
+  active: boolean;
+  sort_order: number;
+  category_scents?: Array<{ categories: Array<{ name: string }> }>;
+};
 type EditableVariant = {
   id: string;
   name: string;
@@ -55,6 +67,16 @@ type EditableProduct = {
   featured: boolean;
   variants: EditableVariant[];
   currentImages: EditableImage[];
+};
+type ProductReview = {
+  id: string;
+  reviewer_name: string;
+  rating: number;
+  comment: string;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+  products: { name: string } | null;
+  product_variants: { name: string } | null;
 };
 const seed: Product[] = [
   {
@@ -110,6 +132,9 @@ export default function Admin() {
   const [tab, setTab] = useState("Resumen");
   const [products, setProducts] = useState(seed);
   const [scents, setScents] = useState<Scent[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [editingScentId, setEditingScentId] = useState<string | null>(null);
+  const [generatingCategory, setGeneratingCategory] = useState("home-spray");
   const [modal, setModal] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -119,9 +144,15 @@ export default function Admin() {
   const [editing, setEditing] = useState<EditableProduct | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [reviewFilter, setReviewFilter] = useState("pending");
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session) return setSession(null);
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      setSession(refreshed.session ?? data.session);
+    });
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) =>
       setSession(nextSession),
     );
@@ -132,10 +163,14 @@ export default function Admin() {
     if (!session) return;
     supabase
       .from("scents")
-      .select("id,name,slug,notes")
-      .eq("active", true)
+      .select("id,name,slug,notes,description,active,sort_order,category_scents(categories(name))")
       .order("sort_order")
       .then(({ data }) => setScents(data ?? []));
+    supabase
+      .from("categories")
+      .select("id,name,slug")
+      .order("sort_order")
+      .then(({ data }) => setCategories(data ?? []));
     supabase
       .from("products")
       .select(
@@ -158,6 +193,14 @@ export default function Admin() {
           })),
         );
       });
+    supabase
+      .from("product_reviews")
+      .select("id,reviewer_name,rating,comment,status,created_at,products(name),product_variants(name)")
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (error) setMessage("No se pudieron cargar los comentarios.");
+        else setReviews((data ?? []) as unknown as ProductReview[]);
+      });
   }, [session]);
 
   const login = async (event: FormEvent<HTMLFormElement>) => {
@@ -171,6 +214,19 @@ export default function Admin() {
     if (error) setMessage("No fue posible iniciar sesión. Revisa tus datos.");
   };
 
+  const moderateReview = async (review: ProductReview, status: "approved" | "rejected") => {
+    if (!session) return;
+    setSaving(true);
+    setMessage("");
+    const { error } = await supabase.from("product_reviews").update({ status, reviewed_at: new Date().toISOString(), reviewed_by: session.user.id }).eq("id", review.id);
+    if (error) setMessage("No fue posible actualizar el comentario. Vuelve a iniciar sesión si el problema continúa.");
+    else {
+      setReviews((items) => items.map((item) => item.id === review.id ? { ...item, status } : item));
+      setMessage(status === "approved" ? "Comentario aprobado y publicado." : "Comentario rechazado.");
+    }
+    setSaving(false);
+  };
+
   const selectImages = async (event: ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(event.target.files ?? []);
     if (!selected.length) return;
@@ -178,17 +234,13 @@ export default function Admin() {
     setMessage("");
     try {
       const files = await Promise.all(
-        selected.map(async (file) => {
-          try {
-            return await compressProductImage(file);
-          } catch {
-            return file;
-          }
-        }),
+        selected.map((file) => compressProductImage(file)),
       );
       previews.forEach(URL.revokeObjectURL);
       setImages(files);
       setPreviews(files.map((file) => URL.createObjectURL(file)));
+    } catch (error: unknown) {
+      setMessage(error instanceof Error ? error.message : "No fue posible procesar la imagen.");
     } finally {
       setCompressing(false);
     }
@@ -207,6 +259,92 @@ export default function Admin() {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
+
+  const saveScent = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSaving(true);
+    setMessage("");
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const payload = {
+      name: String(data.get("name")).trim(),
+      slug: slugify(String(data.get("slug") || data.get("name"))),
+      notes: String(data.get("notes") || "").trim() || null,
+      description: String(data.get("description") || "").trim() || null,
+      active: data.get("active") === "on",
+      sort_order: Number(data.get("sort_order") || 0),
+      updated_at: new Date().toISOString(),
+    };
+    const result = editingScentId
+      ? await supabase.from("scents").update(payload).eq("id", editingScentId)
+      : await supabase.from("scents").insert(payload);
+    if (result.error) setMessage(result.error.message);
+    else {
+      const { data: refreshed } = await supabase
+        .from("scents")
+        .select("id,name,slug,notes,description,active,sort_order,category_scents(categories(name))")
+        .order("sort_order");
+      setScents(refreshed ?? []);
+      setEditingScentId(null);
+      form.reset();
+      setMessage("Fragancia guardada correctamente.");
+    }
+    setSaving(false);
+  };
+
+  const generateMissingProducts = async () => {
+    setSaving(true);
+    setMessage("");
+    try {
+      const category = categories.find((item) => item.slug === generatingCategory);
+      if (!category) throw new Error("Selecciona una categoría válida.");
+      const [{ data: availability, error: availabilityError }, { data: formats, error: formatsError }, { data: existing, error: existingError }] = await Promise.all([
+        supabase.from("category_scents").select("scent_id,scents(id,name,slug,notes,active)").eq("category_id", category.id).eq("active", true),
+        supabase.from("catalog_formats").select("prefix,variant_code,variant_name,size_value,size_unit,price_clp,stock,is_default,sort_order").eq("category_slug", category.slug).order("sort_order"),
+        supabase.from("products").select("id,product_variants(scent_id)").eq("category_id", category.id),
+      ]);
+      if (availabilityError || formatsError || existingError) throw availabilityError || formatsError || existingError;
+      if (!formats?.length) throw new Error("La categoría no tiene formatos configurados.");
+      const existingScentIds = new Set((existing ?? []).flatMap((item: any) => (item.product_variants ?? []).map((variant: any) => variant.scent_id)));
+      const missing = (availability ?? []).map((item: any) => item.scents).filter((scent: any) => scent?.active && !existingScentIds.has(scent.id));
+      for (const scent of missing) {
+        const productSku = `AS-${formats[0].prefix}-${scent.slug.replace(/[^a-z0-9]/g, "").toUpperCase()}`;
+        const { data: product, error: productError } = await supabase.from("products").insert({
+          category_id: category.id,
+          name: `${category.name} ${scent.name}`,
+          slug: `${category.slug}-${scent.slug}`,
+          description: `${category.name} con fragancia ${scent.name}.`,
+          scent_notes: scent.notes,
+          sku: productSku,
+          price_clp: Math.min(...formats.map((format) => format.price_clp)),
+          stock: formats.reduce((sum, format) => sum + format.stock, 0),
+          active: true,
+          featured: false,
+        }).select("id").single();
+        if (productError) throw productError;
+        const { error: variantError } = await supabase.from("product_variants").insert(formats.map((format) => ({
+          product_id: product.id,
+          scent_id: scent.id,
+          name: format.variant_name,
+          sku: `${productSku}-${format.variant_code}`,
+          size_value: format.size_value,
+          size_unit: format.size_unit,
+          price_clp: format.price_clp,
+          stock: format.stock,
+          low_stock_threshold: 5,
+          active: true,
+          is_default: format.is_default,
+          sort_order: format.sort_order,
+        })));
+        if (variantError) throw variantError;
+      }
+      setMessage(missing.length ? `Se crearon ${missing.length} productos faltantes para ${category.name}.` : `${category.name} ya contiene todas las fragancias disponibles.`);
+    } catch (error: unknown) {
+      setMessage(error instanceof Error ? error.message : "No fue posible generar los productos.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const openEdit = async (productId: string | number) => {
     setLoadingEdit(true);
@@ -498,12 +636,22 @@ export default function Admin() {
         .select("id")
         .eq("slug", String(data.get("category")))
         .single();
+      const scent = scents.find((item) => item.id === scentId);
+      if (!category || !scent) throw new Error("Selecciona una categoría y fragancia válidas.");
+      const { data: duplicate } = await supabase
+        .from("product_variants")
+        .select("id,products!inner(category_id)")
+        .eq("scent_id", scentId)
+        .eq("products.category_id", category.id)
+        .limit(1);
+      if (duplicate?.length) throw new Error("Esta categoría ya tiene un producto para la fragancia seleccionada.");
+      const productSlug = `${String(data.get("category"))}-${scent.slug}`;
       const { data: product, error: productError } = await supabase
         .from("products")
         .insert({
           category_id: category?.id ?? null,
           name,
-          slug: `${slugify(name)}-${Date.now().toString().slice(-6)}`,
+          slug: productSlug,
           description: String(data.get("description") || ""),
           scent_notes: String(data.get("notes") || ""),
           sku,
@@ -544,7 +692,7 @@ export default function Admin() {
       for (let index = 0; index < images.length; index++) {
         const file = images[index];
         const extension = file.name.split(".").pop()?.toLowerCase() || "webp";
-        const path = `${product.id}/${Date.now()}-${index}.${extension}`;
+        const path = `${String(data.get("category"))}/${scent.slug}/${productSlug}-${Date.now()}-${index}.${extension}`;
         const { error: uploadError } = await supabase.storage
           .from("product-images")
           .upload(path, file, { cacheControl: "3600", upsert: false });
@@ -638,6 +786,8 @@ export default function Admin() {
           {[
             { name: "Resumen", icon: LayoutDashboard },
             { name: "Productos", icon: Package },
+            { name: "Fragancias", icon: Package },
+            { name: "Comentarios", icon: MessageSquare },
             { name: "Pedidos", icon: ShoppingBag },
             { name: "Clientes", icon: Users },
             { name: "Descuentos", icon: BadgePercent },
@@ -750,7 +900,13 @@ export default function Admin() {
                 <p>GESTIÓN</p>
                 <h2>Catálogo de productos</h2>
               </div>
-              <button onClick={() => setModal(true)}>+ NUEVO PRODUCTO</button>
+              <div className="admin-header-actions">
+                <select value={generatingCategory} onChange={(event) => setGeneratingCategory(event.target.value)}>
+                  {categories.map((category) => <option key={category.id} value={category.slug}>{category.name}</option>)}
+                </select>
+                <button onClick={generateMissingProducts} disabled={saving}>GENERAR FRAGANCIAS FALTANTES</button>
+                <button onClick={() => setModal(true)}>+ NUEVO PRODUCTO</button>
+              </div>
             </header>
             <div>
               <table>
@@ -777,7 +933,7 @@ export default function Admin() {
                             height={52}
                           />
                         ) : (
-                          <i>AS</i>
+                          <i>Sin imagen</i>
                         )}
                         <strong>{product.name}</strong>
                       </td>
@@ -824,6 +980,49 @@ export default function Admin() {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+        {tab === "Fragancias" && (
+          <section className="admin-table">
+            <header><div><p>CATÁLOGO CENTRAL</p><h2>Fragancias</h2></div></header>
+            <form key={editingScentId ?? "new-scent"} className="product-modal" onSubmit={saveScent}>
+              <div><label>Nombre<input name="name" required defaultValue={scents.find((item) => item.id === editingScentId)?.name ?? ""}/></label><label>Slug<input name="slug" defaultValue={scents.find((item) => item.id === editingScentId)?.slug ?? ""}/></label></div>
+              <label>Notas aromáticas<textarea name="notes" rows={3} defaultValue={scents.find((item) => item.id === editingScentId)?.notes ?? ""} placeholder="Pendiente de completar"/></label>
+              <label>Descripción<textarea name="description" rows={2} defaultValue={scents.find((item) => item.id === editingScentId)?.description ?? ""}/></label>
+              <div><label>Orden<input name="sort_order" type="number" min="0" defaultValue={scents.find((item) => item.id === editingScentId)?.sort_order ?? scents.length + 1}/></label><label className="featured-check"><input name="active" type="checkbox" defaultChecked={scents.find((item) => item.id === editingScentId)?.active ?? true}/> Fragancia activa</label></div>
+              <button disabled={saving}>{editingScentId ? "GUARDAR CAMBIOS" : "CREAR FRAGANCIA"}</button>
+            </form>
+            {editingScentId && (
+              <ProductLabel fragrance={scents.find((item) => item.id === editingScentId)?.name ?? ""} notes={scents.find((item) => item.id === editingScentId)?.notes} productName="Home Spray" volumeMl={250}/>
+            )}
+            <div><table><thead><tr><th>Fragancia</th><th>Notas</th><th>Categorías</th><th>Estado</th><th>Acción</th></tr></thead><tbody>{scents.map((scent) => <tr key={scent.id}><td><strong>{scent.name}</strong><small>{scent.slug}</small></td><td>{scent.notes || "Pendientes"}</td><td>{scent.category_scents?.map((item) => item.categories?.[0]?.name).filter(Boolean).join(", ") || "Sin categorías"}</td><td><span className={scent.active ? "ok" : "bad"}>{scent.active ? "Activa" : "Inactiva"}</span></td><td><button className="admin-edit-button" onClick={() => setEditingScentId(scent.id)}>EDITAR</button></td></tr>)}</tbody></table></div>
+          </section>
+        )}
+        {tab === "Comentarios" && (
+          <section className="admin-table admin-reviews">
+            <header>
+              <div><p>MODERACIÓN</p><h2>Comentarios de productos</h2></div>
+              <div className="admin-review-filters">
+                {[{ value: "pending", label: "Pendientes" }, { value: "approved", label: "Aprobados" }, { value: "rejected", label: "Rechazados" }, { value: "all", label: "Todos" }].map((item) => <button key={item.value} className={reviewFilter === item.value ? "active" : ""} onClick={() => setReviewFilter(item.value)}>{item.label} ({item.value === "all" ? reviews.length : reviews.filter((review) => review.status === item.value).length})</button>)}
+              </div>
+            </header>
+            <div>
+              <table>
+                <thead><tr><th>Cliente</th><th>Producto</th><th>Calificación</th><th>Comentario</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr></thead>
+                <tbody>
+                  {reviews.filter((review) => reviewFilter === "all" || review.status === reviewFilter).map((review) => <tr key={review.id}>
+                    <td><strong>{review.reviewer_name}</strong></td>
+                    <td><strong>{review.products?.name ?? "Producto"}</strong><small>{review.product_variants?.name ?? ""}</small></td>
+                    <td><span className="admin-review-stars">{"★".repeat(review.rating)}{"☆".repeat(5-review.rating)}</span></td>
+                    <td className="admin-review-comment">{review.comment}</td>
+                    <td>{new Intl.DateTimeFormat("es-CL", { dateStyle: "short" }).format(new Date(review.created_at))}</td>
+                    <td><span className={review.status === "approved" ? "ok" : review.status === "rejected" ? "bad" : "warn"}>{review.status === "approved" ? "Aprobado" : review.status === "rejected" ? "Rechazado" : "Pendiente"}</span></td>
+                    <td><div className="admin-review-actions"><button className="approve" onClick={() => moderateReview(review, "approved")} disabled={saving || review.status === "approved"}>APROBAR</button><button className="reject" onClick={() => moderateReview(review, "rejected")} disabled={saving || review.status === "rejected"}>RECHAZAR</button></div></td>
+                  </tr>)}
+                  {reviews.filter((review) => reviewFilter === "all" || review.status === reviewFilter).length === 0 && <tr><td colSpan={7} className="admin-review-empty">No hay comentarios en esta sección.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -969,7 +1168,7 @@ export default function Admin() {
               Fotografías
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/avif"
+                accept="image/jpeg,image/png,image/webp"
                 multiple
                 onChange={selectImages}
               />
@@ -1148,7 +1347,7 @@ export default function Admin() {
               Agregar fotografías
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/avif"
+                accept="image/jpeg,image/png,image/webp"
                 multiple
                 onChange={selectImages}
               />

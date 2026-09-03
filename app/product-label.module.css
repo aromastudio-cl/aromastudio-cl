@@ -1,0 +1,38 @@
+.label {
+  aspect-ratio: 2 / 3;
+  background: #f4efe4;
+  border: 1px double #b8a274;
+  color: #17130f;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7% 8% 5%;
+  text-align: center;
+  width: min(100%, 280px);
+}
+
+.logo {
+  height: auto;
+  object-fit: contain;
+  width: 42%;
+}
+
+.label strong {
+  font-family: Georgia, serif;
+  font-size: clamp(1.25rem, 4vw, 1.8rem);
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.label p {
+  font-size: clamp(.62rem, 1.5vw, .76rem);
+  line-height: 1.35;
+  margin: .5rem 0;
+  text-transform: uppercase;
+}
+
+.label span, .label b, .label small { display: block; }
+.label span { font-size: .9rem; }
+.label b { font-size: 1rem; font-weight: 400; }
+.label small { font-size: .7rem; }

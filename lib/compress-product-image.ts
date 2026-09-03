@@ -1,7 +1,12 @@
 const MAX_DIMENSION = 2000;
 const WEBP_QUALITY = 0.9;
+const MAX_SOURCE_BYTES = 15 * 1024 * 1024;
+const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export async function compressProductImage(file: File): Promise<File> {
+  if (!file.size) throw new Error("La imagen está vacía");
+  if (!ALLOWED_TYPES.has(file.type)) throw new Error("Formato no permitido. Usa JPG, PNG o WebP");
+  if (file.size > MAX_SOURCE_BYTES) throw new Error("La imagen supera el máximo de 15 MB antes de optimizar");
   const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
   const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
   const width = Math.max(1, Math.round(bitmap.width * scale));

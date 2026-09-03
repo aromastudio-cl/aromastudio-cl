@@ -1,3 +1,7 @@
 .next-*/
 .preview.log
 .dev-*.log
+art-direction/
+tmp/
+scripts/
+supabase/

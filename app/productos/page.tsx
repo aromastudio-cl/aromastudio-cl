@@ -70,9 +70,9 @@ const process = [
 
 const categories = [
   ["Home Spray", "Pensado para quienes buscan una aromatización rápida. Unas aplicaciones permiten renovar la sensación de un dormitorio, living, baño, oficina o cualquier espacio donde quieras incorporar tu aroma favorito. Es ideal para utilizar durante diferentes momentos del día y cambiar rápidamente la atmósfera de un ambiente."],
-  ["Mikados con varillas", "Una alternativa de difusión continua. Las varillas absorben progresivamente la fragancia y permiten que el aroma se libere poco a poco en el ambiente. Son ideales para espacios donde quieres mantener una sensación aromática constante, además de aportar un elemento decorativo limpio y elegante."],
-  ["Difusores para auto", "El aroma también puede acompañarte mientras conduces. Nuestros difusores para vehículo están pensados para espacios pequeños y permiten mantener una sensación agradable dentro del automóvil durante los trayectos diarios."],
+  ["Difusor de Varillas", "Una alternativa de difusión continua. Las varillas absorben progresivamente la fragancia y permiten que el aroma se libere poco a poco en el ambiente. Son ideales para espacios donde quieres mantener una sensación aromática constante, además de aportar un elemento decorativo limpio y elegante."],
   ["Esencias puras", "Para quienes buscan mayor versatilidad y concentración. Nuestras esencias permiten disfrutar diferentes perfiles aromáticos y pueden utilizarse según las indicaciones correspondientes para cada tipo de aplicación."],
+  ["Difusor para Vehículo", "El aroma también puede acompañarte mientras conduces. Nuestros difusores para vehículo están pensados para espacios pequeños y permiten mantener una sensación agradable dentro del automóvil durante los trayectos diarios."],
   ["Humidificadores y difusión de aromas", "Una alternativa para quienes disfrutan crear ambientes relajantes y personalizados. Combinados con esencias compatibles y utilizadas correctamente, permiten incorporar aromas al espacio mientras forman parte de una experiencia de bienestar y ambientación."],
 ];
 
