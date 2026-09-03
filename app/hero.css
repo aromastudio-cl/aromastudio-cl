@@ -2,6 +2,10 @@
   display: none;
 }
 
+.mobile-catalog-intro {
+  display: none;
+}
+
 .home-hero {
   width: 100%;
   height: clamp(520px, 31vw, 590px);
@@ -172,21 +176,19 @@
 @media (max-width: 700px) {
   html,
   body {
-    height: 100%;
-    overflow: hidden;
+    min-height: 100%;
     background: #17120d;
   }
 
-  main > :not(.mobile-public-cover) {
-    display: none !important;
-  }
+  .storefront > .topbar,
+  .storefront > .site-header,
+  .storefront > .promises { display: none !important; }
 
   .mobile-public-cover {
     display: block;
-    position: fixed;
-    inset: 0;
-    width: 100vw;
-    height: 100svh;
+    position: relative;
+    width: 100%;
+    height: clamp(650px, 121vw, 760px);
     overflow: hidden;
     background: #6d4b2d;
     color: #fff;
@@ -306,8 +308,23 @@
 
   .mobile-public-cover__copy h1 {
     margin: 0;
-    font: 500 clamp(37px, 10vw, 53px)/1.08 var(--font-display), Georgia, serif;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-family: var(--font-display), Georgia, serif;
     letter-spacing: -.035em;
+  }
+
+  .mobile-public-cover__copy h1 em {
+    font-size: clamp(34px, 9vw, 48px);
+    font-weight: 400;
+    line-height: 1;
+  }
+
+  .mobile-public-cover__copy h1 span {
+    font-size: clamp(42px, 11vw, 58px);
+    font-weight: 400;
+    line-height: 1;
   }
 
   .mobile-public-cover__copy p {
@@ -316,6 +333,38 @@
     font-weight: 500;
     line-height: 1.65;
   }
+
+  .storefront > .catalog {
+    padding-top: 48px;
+    background: #fff;
+  }
+
+  .mobile-catalog-intro {
+    display: block;
+    max-width: 520px;
+    margin: 0 auto 30px;
+    text-align: center;
+  }
+
+  .mobile-catalog-intro > span {
+    color: #9c9389;
+    font-size: 10px;
+    letter-spacing: .28em;
+  }
+
+  .mobile-catalog-intro h2 {
+    margin: 13px 0 14px;
+    font: 500 34px/1.05 var(--font-display), Georgia, serif;
+  }
+
+  .mobile-catalog-intro p {
+    margin: 0;
+    color: #69635d;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  .storefront > .catalog > .section-title { display: none; }
 
   .home-hero { height: 650px; min-height: 650px; background-position: 70% top; }
   .home-hero::after { background: linear-gradient(180deg, rgba(253, 249, 243, .98) 0%, rgba(253, 249, 243, .88) 43%, rgba(253, 249, 243, .2) 70%, transparent 100%); }

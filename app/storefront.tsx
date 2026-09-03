@@ -69,7 +69,7 @@ export default function Storefront() {
   const add = (id: string) => { setCart(items => [...items, id]); notify("Producto agregado al carrito"); };
   const subscribe = (event: FormEvent) => { event.preventDefault(); notify("¡Gracias por suscribirte!"); };
 
-  return <main>
+  return <main className="storefront">
     <section className="mobile-public-cover" aria-label="Portada de Aroma Studio">
       <div className="mobile-public-cover__announcement">ENVÍOS A TODO CHILE</div>
       <Image
@@ -96,7 +96,7 @@ export default function Storefront() {
       </nav>}
       {search && <form className="mobile-public-cover__search" action="/tienda"><Search/><input name="buscar" autoFocus placeholder="Buscar productos…" aria-label="Buscar productos"/></form>}
       <div className="mobile-public-cover__copy">
-        <h1>Descubre el aroma<br/>perfecto para cada espacio</h1>
+        <h1><em>Descubre el aroma perfecto</em><span>para cada espacio</span></h1>
         <p>Descubre fragancias que transforman tu hogar<br/>y tu día a día.</p>
       </div>
     </section>
@@ -119,7 +119,7 @@ export default function Storefront() {
       <article><Headphones aria-hidden="true"/><div><strong>ATENCIÓN PERSONALIZADA</strong><span>Estamos para ayudarte.</span></div></article>
     </section>
 
-    <section className="catalog" id="productos"><div className="section-title"><p>PRODUCTOS DESTACADOS</p><h2>Encuentra tu favorito</h2><i/></div><div className="filters" id="aromas">{categories.map(category => <button key={category} className={activeCategory === category ? "active" : ""} onClick={() => setActiveCategory(category)}>{category.toUpperCase()}</button>)}</div>
+    <section className="catalog" id="productos"><div className="mobile-catalog-intro"><span>EXPLORA</span><h2>Categorías de productos</h2><p>Un mismo ritual, distintas maneras de vivirlo. Elige el formato que mejor acompaña tu espacio.</p></div><div className="section-title"><p>PRODUCTOS DESTACADOS</p><h2>Encuentra tu favorito</h2><i/></div><div className="filters" id="aromas">{categories.map(category => <button key={category} className={activeCategory === category ? "active" : ""} onClick={() => setActiveCategory(category)}>{category.toUpperCase()}</button>)}</div>
       <div className="product-list">{visible.map(product => <article className="product-card" key={product.id}><Link href={product.href} className="product-photo"><Image src={product.image} alt={`Aromatizante ${product.name} de Aroma Studio`} fill sizes="(max-width: 850px) 50vw, 20vw" unoptimized={product.image.startsWith("http")}/></Link><h3><Link href={product.href}>{product.name}</Link></h3><p>{product.family}</p><strong>{money(product.price)}</strong><button disabled={product.stock === 0} onClick={() => add(product.id)}>{product.stock === 0 ? "SIN STOCK" : "AGREGAR AL CARRITO"}</button></article>)}</div>
       {!loadingProducts && visible.length === 0 && <p className="no-results">No hay productos destacados en esta categoría.</p>}<Link className="btn btn-outline" href="/tienda">VER TODOS LOS AROMAS</Link>
     </section>
