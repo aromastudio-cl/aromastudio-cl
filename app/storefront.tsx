@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { BadgeCheck, Headphones, MapPin, ShieldCheck, Truck } from "lucide-react";
+import { BadgeCheck, Headphones, MapPin, Menu, Search, ShieldCheck, ShoppingBag, Truck, UserRound, X } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import SiteHeader from "./site-header";
 import WhatsAppIcon from "./whatsapp-icon";
@@ -24,6 +24,7 @@ export default function Storefront() {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("Todos");
   const [toast, setToast] = useState("");
+  const [mobileMenu, setMobileMenu] = useState(false);
   useEffect(() => {
     supabase
       .from("products")
@@ -69,14 +70,34 @@ export default function Storefront() {
   const subscribe = (event: FormEvent) => { event.preventDefault(); notify("¡Gracias por suscribirte!"); };
 
   return <main>
-    <section className="mobile-public-cover" aria-label="Aroma Studio">
+    <section className="mobile-public-cover" aria-label="Portada de Aroma Studio">
       <Image
-        src="/mobile-public-cover.png"
-        alt="Descubre el aroma perfecto para cada espacio. Descubre fragancias que transforman tu hogar y tu día a día."
+        className="mobile-public-cover__background"
+        src="/mobile-home-spray-background.png"
+        alt="Home Spray Aroma Studio rociando una sala de estar"
         fill
         priority
         sizes="(max-width: 700px) 100vw, 1px"
       />
+      <header className="mobile-public-cover__header">
+        <div>
+          <button onClick={() => setMobileMenu(value => !value)} aria-label={mobileMenu ? "Cerrar menú" : "Abrir menú"} aria-expanded={mobileMenu}>{mobileMenu ? <X/> : <Menu/>}</button>
+          <button onClick={() => setSearch(value => !value)} aria-label="Buscar productos"><Search/></button>
+        </div>
+        <Link className="mobile-public-cover__logo" href="/" aria-label="Aroma Studio, inicio"><Image src="/logo-hd.png" alt="Aroma Studio" width={94} height={86}/></Link>
+        <div>
+          <Link href="/admin" aria-label="Mi cuenta"><UserRound/></Link>
+          <Link href="/tienda" aria-label="Ir a la tienda"><ShoppingBag/></Link>
+        </div>
+      </header>
+      {mobileMenu && <nav className="mobile-public-cover__menu" aria-label="Navegación móvil">
+        <Link href="/tienda">Tienda online</Link><Link href="/productos">Productos</Link><Link href="/mayoristas">Empresas</Link><Link href="/emprendedores">Emprendedores</Link><Link href="/nosotros">Nosotros</Link>
+      </nav>}
+      {search && <form className="mobile-public-cover__search" action="/tienda"><Search/><input name="buscar" autoFocus placeholder="Buscar productos…" aria-label="Buscar productos"/></form>}
+      <div className="mobile-public-cover__copy">
+        <h1>Descubre el aroma<br/>perfecto para cada espacio</h1>
+        <p>Descubre fragancias que transforman tu hogar<br/>y tu día a día.</p>
+      </div>
     </section>
     <div className="topbar">ENVÍOS A TODO CHILE · COMPRA SEGURA</div>
     <SiteHeader cartCount={cart.length} onSearch={() => setSearch(!search)} onCart={() => setDrawer(true)}/>
