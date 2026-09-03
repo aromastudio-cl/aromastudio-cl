@@ -193,7 +193,8 @@
     display: block;
     position: relative;
     width: 100%;
-    height: clamp(650px, 121vw, 760px);
+    height: calc(44px + 110vw);
+    max-height: 760px;
     overflow: hidden;
     background: #6d4b2d;
     color: #fff;
@@ -202,10 +203,9 @@
   .mobile-public-cover__background {
     top: 44px !important;
     height: calc(100% - 44px) !important;
-    object-fit: fill;
+    object-fit: cover;
     object-position: center;
     border-radius: 0 0 28px 28px;
-    transform: scale(1.06);
   }
 
   .mobile-public-cover__announcement {
