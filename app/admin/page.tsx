@@ -365,6 +365,21 @@ export default function Admin() {
     }
   };
 
+  const toggleEditVariant = (variantId: string) => {
+    if (expandedVariantId === variantId) {
+      setExpandedVariantId(null);
+      return;
+    }
+    if (imageVariantId !== variantId) {
+      previews.forEach(URL.revokeObjectURL);
+      setImages([]);
+      setPreviews([]);
+      setPrimaryImageIndex(null);
+      setImageVariantId(variantId);
+    }
+    setExpandedVariantId(variantId);
+  };
+
   const selectNewFormatImages = async (event:ChangeEvent<HTMLInputElement>, formatIndex:number) => {
     const selected=Array.from(event.target.files??[]);
     if(!selected.length)return;
@@ -1585,7 +1600,7 @@ export default function Admin() {
               <header><div><h3>Presentaciones, precios y stock</h3><p>Cada formato puede tener precio normal, precio de oferta y fotografías propias.</p></div><button type="button" onClick={() => { const id=`new-${crypto.randomUUID()}`; setEditing(current => current ? { ...current, variants: [...current.variants, { id, name: "", sku: "", price_clp: current.variants[0]?.price_clp ?? 0, sale_price_clp: null, stock: 0, size_value: null, size_unit: "ml", scent_id: current.variants[0]?.scent_id ?? "", active: true }] } : current); setExpandedVariantId(id); }}>+ AGREGAR FORMATO</button></header>
               {editing.variants.map((variant, index) => (
                 <details className="variant-accordion" key={variant.id} open={expandedVariantId === variant.id}>
-                  <summary onClick={event=>{event.preventDefault();setExpandedVariantId(current=>current===variant.id?null:variant.id)}}><span>Formato {index + 1}</span><small>{variant.size_value ? `${variant.size_value} ml` : "Sin capacidad"} · {new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(variant.price_clp)} · Stock {variant.stock}</small><ChevronDown aria-hidden="true"/></summary>
+                  <summary onClick={event=>{event.preventDefault();toggleEditVariant(variant.id)}}><span>Formato {index + 1}</span><small>{variant.size_value ? `${variant.size_value} ml` : "Sin capacidad"} · {new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(variant.price_clp)} · Stock {variant.stock}</small><ChevronDown aria-hidden="true"/></summary>
                   <div className="variant-accordion__content">
                   <div className="variant-fields">
                     <label>
@@ -1629,67 +1644,42 @@ export default function Admin() {
                     />
                     Formato activo
                   </label>
+                  <section className="variant-image-manager" aria-label={`Fotografías del formato ${variant.size_value || index + 1}`}>
+                    <header><strong>Fotografías del formato</strong><span>{editing.currentImages.filter(image=>image.variant_id===variant.id).length + (imageVariantId===variant.id ? images.length : 0)} de 5</span></header>
+                    {editing.currentImages.filter(image=>image.variant_id===variant.id).length > 0 ? (
+                      <div className="image-previews">
+                        {editing.currentImages.filter(image=>image.variant_id===variant.id).map((image) => (
+                          <figure key={image.id}>
+                            <Image src={image.image_url} alt="" fill unoptimized />
+                            <button type="button" onClick={() => removeCurrentImage(image)} aria-label="Eliminar fotografía">×</button>
+                            <button type="button" className="image-primary-button" onClick={() => selectCurrentPrimaryImage(image.id)}>{image.is_primary ? "PRINCIPAL" : "USAR COMO PRINCIPAL"}</button>
+                          </figure>
+                        ))}
+                      </div>
+                    ) : <p className="edit-no-images">Este formato aún no tiene fotografías.</p>}
+                    <label className="image-upload">
+                      Agregar fotografías
+                      <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={selectImages}/>
+                      <span>Se comprimen automáticamente y se guardan en Supabase · Máximo 5</span>
+                    </label>
+                    {imageVariantId===variant.id && previews.length > 0 && (
+                      <div className="image-previews">
+                        {previews.map((src, imageIndex) => (
+                          <figure key={src}>
+                            <Image src={src} alt="" fill unoptimized />
+                            <button type="button" onClick={() => removeImage(imageIndex)} aria-label="Quitar fotografía nueva">×</button>
+                            <button type="button" className="image-primary-button" onClick={() => selectNewPrimaryImage(imageIndex)}>{primaryImageIndex === imageIndex ? "PRINCIPAL" : "USAR COMO PRINCIPAL"}</button>
+                          </figure>
+                        ))}
+                      </div>
+                    )}
+                  </section>
                   {editing.variants.length > 1 && variant.id.startsWith("new-") && <button type="button" className="remove-format-button" onClick={() => { setEditing(current => current ? { ...current, variants: current.variants.filter(item => item.id !== variant.id) } : current); if (imageVariantId === variant.id) setImageVariantId(editing.variants[0]?.id ?? ""); }}><Trash2/> ELIMINAR FORMATO</button>}
                   </div>
                 </details>
               ))}
             </section>
 
-            <label className="image-variant-selector">Administrar fotografías del formato
-              <select value={imageVariantId} onChange={event => {previews.forEach(URL.revokeObjectURL);setImages([]);setPreviews([]);setPrimaryImageIndex(null);setImageVariantId(event.target.value)}} required>
-                <option value="" disabled>Selecciona un formato</option>
-                {editing.variants.map((variant, index) => <option value={variant.id} key={variant.id}>{variant.size_value ? `${variant.size_value} ml` : `Formato ${index + 1}`}</option>)}
-              </select>
-            </label>
-            <p className="image-section-title">Fotografías actuales de este formato</p>
-            {editing.currentImages.filter(image=>image.variant_id===imageVariantId).length > 0 ? (
-              <div className="image-previews">
-                {editing.currentImages.filter(image=>image.variant_id===imageVariantId).map((image) => (
-                  <figure key={image.id}>
-                    <Image src={image.image_url} alt="" fill unoptimized />
-                    <button type="button" onClick={() => removeCurrentImage(image)}>
-                      ×
-                    </button>
-                    <button
-                      type="button"
-                      className="image-primary-button"
-                      onClick={() => selectCurrentPrimaryImage(image.id)}
-                    >
-                      {image.is_primary ? "PRINCIPAL" : "USAR COMO PRINCIPAL"}
-                    </button>
-                  </figure>
-                ))}
-              </div>
-            ) : (
-              <p className="edit-no-images">Este formato aún no tiene fotografías.</p>
-            )}
-            <label className="image-upload">
-              Agregar fotografías
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                onChange={selectImages}
-              />
-              <span>Agregar imágenes comprimidas · Máximo 5 para este formato</span>
-            </label>
-            {previews.length > 0 && (
-              <div className="image-previews">
-                {previews.map((src, index) => (
-                  <figure key={src}>
-                    <Image src={src} alt="" fill unoptimized />
-                    <button type="button" onClick={() => removeImage(index)}>×</button>
-                    <button
-                      type="button"
-                      className="image-primary-button"
-                      onClick={() => selectNewPrimaryImage(index)}
-                    >
-                      {primaryImageIndex === index ? "PRINCIPAL" : "USAR COMO PRINCIPAL"}
-                    </button>
-                  </figure>
-                ))}
-              </div>
-            )}
             <div className="edit-product-checks">
               <label className="featured-check">
                 <input name="active" type="checkbox" defaultChecked={editing.active} />
