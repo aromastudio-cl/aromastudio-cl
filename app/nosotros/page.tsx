@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Heart, MapPin, Sparkles } from "lucide-react";
 import SiteFooter from "../site-footer";
 import SiteHeader from "../site-header";
-import WhatsAppIcon from "../whatsapp-icon";
 import styles from "./nosotros.module.css";
 
 export const metadata: Metadata = {
@@ -109,10 +108,9 @@ export default function NosotrosPage() {
       <span>AROMA STUDIO</span>
       <h2>Tu espacio también puede<br/><em>contar una historia</em></h2>
       <p>Descubre aromas creados para acompañar tus momentos y transformar cada ambiente.</p>
-      <Link href="/tienda">IR A LA TIENDA ONLINE</Link>
+      <Link href="/productos">VER PRODUCTOS</Link>
     </section>
 
     <SiteFooter />
-    <a className="whatsapp-float" href="https://wa.me/56993158300?text=Hola%20Aroma%20Studio%2C%20quisiera%20m%C3%A1s%20informaci%C3%B3n." target="_blank" rel="noopener noreferrer" aria-label="Contactar a Aroma Studio por WhatsApp"><WhatsAppIcon/></a>
   </main>;
 }

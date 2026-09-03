@@ -78,7 +78,7 @@ export default function ProductDetail({ product }: { product: ProductDetailData 
       <SiteHeader cartCount={cartCount} onCart={() => setDrawer(true)} />
       <nav className="product-breadcrumb" aria-label="Migas de pan">
         <Link href="/">Inicio</Link><span>/</span>
-        <Link href="/tienda">Tienda</Link><span>/</span>
+        <Link href="/productos">Productos</Link><span>/</span>
         <span>{product.name} · {product.variantName}</span>
       </nav>
 
@@ -145,7 +145,7 @@ export default function ProductDetail({ product }: { product: ProductDetailData 
         <p>AROMA STUDIO</p>
         <h2>Una fragancia para transformar tus espacios</h2>
         <span>{product.notes}. Una composición creada para acompañar tus ambientes con una presencia elegante y duradera.</span>
-        <Link href="/tienda">SEGUIR COMPRANDO</Link>
+        <Link href="/productos">SEGUIR EXPLORANDO</Link>
       </section>
 
       <section className="product-reviews">

@@ -3,7 +3,6 @@ import Image from "next/image";
 import Link from "next/link";
 import SiteFooter from "../site-footer";
 import SiteHeader from "../site-header";
-import WhatsAppIcon from "../whatsapp-icon";
 import styles from "./productos.module.css";
 
 export const metadata: Metadata = {
@@ -129,9 +128,8 @@ export default function ProductosPage() {
       <strong>Crear productos de calidad que permitan transformar tus espacios a través del aroma.</strong>
       <p>Porque para nosotros perfumar un ambiente significa mucho más que agregar una fragancia. Significa crear una sensación. Significa darle identidad a un espacio. Significa convertir lo cotidiano en una experiencia más agradable.</p>
       <h3>Descubre AromaStudio y encuentra el aroma que quieres hacer parte de tus espacios.</h3>
-      <Link href="/tienda">DESCUBRIR PRODUCTOS</Link>
+      <Link href="/productos">DESCUBRIR PRODUCTOS</Link>
     </section>
     <SiteFooter />
-    <a className="whatsapp-float" href="https://wa.me/56993158300?text=Hola%20Aroma%20Studio%2C%20quisiera%20m%C3%A1s%20informaci%C3%B3n." target="_blank" rel="noopener noreferrer" aria-label="Contactar a Aroma Studio por WhatsApp"><WhatsAppIcon/></a>
   </main>;
 }
