@@ -82,7 +82,7 @@ export default function Storefront() {
       <div className="mobile-public-cover__announcement">ENVÍOS A TODO CHILE</div>
       <Image
         className="mobile-public-cover__background"
-        src="/mobile-home-spray-portrait.png"
+        src="/mobile-home-spray-reference-match.png"
         alt="Home Spray Aroma Studio rociando una sala de estar"
         fill
         priority
