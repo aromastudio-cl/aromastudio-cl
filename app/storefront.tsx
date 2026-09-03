@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Search as SearchIcon, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
@@ -11,11 +12,12 @@ import { supabase } from "../lib/supabase-browser";
 import { productVariantHref } from "../lib/product-routes";
 import { productCategoryLabel } from "../lib/catalog-order";
 
-type Product = { id: string; name: string; family: string; category: string; categorySlug: string; price: number; note: string; image: string; stock: number; href: string };
+type Product = { id: string; name: string; family: string; aromaSlug: string; category: string; categorySlug: string; price: number; note: string; image: string; stock: number; href: string };
 
 const money = (value: number) => new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(value);
 
-export default function Storefront() {
+export default function Storefront({ catalogOnly = false }: { catalogOnly?: boolean }) {
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [homeCategories, setHomeCategories] = useState<Array<{ id: string; name: string; slug: string; image_url: string | null }>>([]);
   const [locations, setLocations] = useState<Array<{id:string;name:string;address:string;image_url:string;show_in_hero:boolean}>>([]);
@@ -25,6 +27,8 @@ export default function Storefront() {
   const [drawer, setDrawer] = useState(false);
   const [search, setSearch] = useState(false);
   const [query, setQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("todos");
+  const [selectedAroma, setSelectedAroma] = useState("");
   const [toast, setToast] = useState("");
   const categoryCarouselRef = useRef<HTMLDivElement>(null);
   const moveCategories = (direction: number) => categoryCarouselRef.current?.scrollBy({ left: direction * categoryCarouselRef.current.clientWidth * .82, behavior: "smooth" });
@@ -35,7 +39,7 @@ export default function Storefront() {
     supabase.from("faqs").select("id,question,answer").eq("active",true).order("sort_order").then(({data})=>setFaqs(data??[]));
     supabase
       .from("products")
-      .select("id,slug,name,scent_notes,price_clp,stock,categories(name,slug),product_variants(id,size_value,size_unit,is_default,sort_order,active),product_images(variant_id,image_url,is_primary,sort_order)")
+      .select("id,slug,name,scent_notes,aroma_family,price_clp,stock,categories(name,slug),aroma_families(name,slug),product_variants(id,size_value,size_unit,is_default,sort_order,active),product_images(variant_id,image_url,is_primary,sort_order)")
       .eq("active", true)
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
@@ -54,22 +58,35 @@ export default function Storefront() {
           return {
           id: item.id,
           name: item.name,
-          family: productCategoryLabel(item.categories?.slug ?? "otros", item.categories?.name ?? "Aroma Studio"),
+          family: item.aroma_families?.name ?? "Aroma Studio",
+          aromaSlug: item.aroma_families?.slug ?? item.aroma_family ?? "",
           category: productCategoryLabel(item.categories?.slug ?? "otros", item.categories?.name ?? "Otros"),
           categorySlug: item.categories?.slug ?? "otros",
           price: item.price_clp,
           note: item.scent_notes ?? "",
           stock: item.stock,
           image,
-          href: variant ? productVariantHref(item.slug, variant.size_value, variant.size_unit) : "/productos",
+          href: variant ? productVariantHref(item.slug, variant.size_value, variant.size_unit) : "/tienda",
         };
         }));
       });
   }, []);
+  useEffect(() => {
+    setSelectedCategory(searchParams.get("categoria") || "todos");
+    setSelectedAroma(searchParams.get("aroma") || "");
+  }, [searchParams]);
   const total = cart.reduce((sum, id) => sum + (products.find(p => p.id === id)?.price ?? 0), 0);
   const notify = (text: string) => { setToast(text); window.setTimeout(() => setToast(""), 2200); };
   const normalizedQuery = query.trim().toLocaleLowerCase("es");
   const searchResults = normalizedQuery.length < 2 ? [] : products.filter(product => `${product.name} ${product.note} ${product.category}`.toLocaleLowerCase("es").includes(normalizedQuery)).slice(0, 6);
+  const filteredProducts = selectedAroma ? products.filter(product => product.aromaSlug === selectedAroma) : selectedCategory === "todos" ? products : products.filter(product => product.categorySlug === selectedCategory);
+  const selectedCategoryName = homeCategories.find(category => category.slug === selectedCategory)?.name;
+  const selectCategory = (slug: string) => {
+    setSelectedCategory(slug);
+    setSelectedAroma("");
+    const url = slug === "todos" ? "/tienda" : `/tienda?categoria=${encodeURIComponent(slug)}`;
+    window.history.replaceState(null, "", url);
+  };
 
   useEffect(() => {
     if (!search) return;
@@ -81,7 +98,8 @@ export default function Storefront() {
 
   return <main className="storefront">
     <div className="topbar">ENVÍOS A TODO CHILE · COMPRA SEGURA</div>
-    <div className="home-hero-shell" style={{"--hero-desktop-image":heroImages.desktop?`url("${heroImages.desktop}")`:undefined,"--hero-mobile-image":heroImages.mobile?`url("${heroImages.mobile}")`:undefined} as CSSProperties}>
+    {catalogOnly && <SiteHeader cartCount={cart.length} onCart={() => setDrawer(true)}/>} 
+    {!catalogOnly && <div className="home-hero-shell" style={{"--hero-desktop-image":heroImages.desktop?`url("${heroImages.desktop}")`:undefined,"--hero-mobile-image":heroImages.mobile?`url("${heroImages.mobile}")`:undefined} as CSSProperties}>
       <SiteHeader overlay cartCount={cart.length} onSearch={() => setSearch(!search)} onCart={() => setDrawer(true)}/>
       {search && <div className="search-overlay" role="dialog" aria-modal="true" aria-labelledby="search-title">
         <button className="search-overlay__backdrop" onClick={() => setSearch(false)} aria-label="Cerrar búsqueda" />
@@ -89,7 +107,7 @@ export default function Storefront() {
           <header><div><span>EXPLORA AROMA STUDIO</span><h2 id="search-title">¿Qué aroma buscas?</h2></div><button className="search-panel__close" onClick={() => setSearch(false)} aria-label="Cerrar búsqueda"><X /></button></header>
           <div className="search-panel__field"><SearchIcon aria-hidden="true"/><input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Busca por nombre, aroma o nota…" aria-label="Buscar productos"/>{query && <button onClick={() => setQuery("")} aria-label="Limpiar búsqueda"><X /></button>}</div>
           <div className="search-panel__content">
-            {query.trim().length < 2 ? <p className="search-panel__hint">Escribe al menos dos caracteres para comenzar.</p> : searchResults.length ? <div className="search-panel__results">{searchResults.map(product => <Link href={product.href} key={product.id} onClick={() => setSearch(false)}><span><Image src={product.image} alt="" fill sizes="72px" unoptimized/></span><div><small>{product.category}</small><strong>{product.name}</strong><p>{product.note || "Fragancia Aroma Studio"}</p></div><b>{money(product.price)}</b></Link>)}</div> : <div className="search-panel__empty"><strong>Sin resultados</strong><p>No encontramos productos para “{query.trim()}”. Prueba con otro aroma o categoría.</p><Link href="/productos" onClick={() => setSearch(false)}>VER TODO EL CATÁLOGO</Link></div>}
+            {query.trim().length < 2 ? <p className="search-panel__hint">Escribe al menos dos caracteres para comenzar.</p> : searchResults.length ? <div className="search-panel__results">{searchResults.map(product => <Link href={product.href} key={product.id} onClick={() => setSearch(false)}><span><Image src={product.image} alt="" fill sizes="72px" unoptimized/></span><div><small>{product.category}</small><strong>{product.name}</strong><p>{product.note || "Fragancia Aroma Studio"}</p></div><b>{money(product.price)}</b></Link>)}</div> : <div className="search-panel__empty"><strong>Sin resultados</strong><p>No encontramos productos para “{query.trim()}”. Prueba con otro aroma o categoría.</p><Link href="/tienda" onClick={() => setSearch(false)}>VER TODO EL CATÁLOGO</Link></div>}
           </div>
         </section>
       </div>}
@@ -99,9 +117,9 @@ export default function Storefront() {
           <p>Descubre fragancias que transforman tu hogar<br/>y tu día a día.</p>
         </div>
       </section>
-    </div>
+    </div>}
 
-    <section className="category-showcase" aria-labelledby="category-showcase-title">
+    {!catalogOnly && <section className="category-showcase" aria-labelledby="category-showcase-title">
       <header>
         <span>EXPLORA</span>
         <h2 id="category-showcase-title">Categorías de productos</h2>
@@ -111,7 +129,7 @@ export default function Storefront() {
         <button className="category-carousel__arrow category-carousel__arrow--previous" type="button" onClick={()=>moveCategories(-1)} aria-label="Categorías anteriores"><ChevronLeft aria-hidden="true"/></button>
         <div className="category-showcase__grid" ref={categoryCarouselRef}>
           {homeCategories.map((category) => (
-            <Link className="category-showcase__card" href={`/productos?categoria=${category.slug}`} key={category.id}>
+            <Link className="category-showcase__card" href={`/tienda?categoria=${category.slug}`} key={category.id}>
               <span className="category-showcase__image">
                 {category.image_url && <Image src={category.image_url} alt={category.name} fill sizes="(max-width: 700px) 90vw, 25vw" unoptimized/>}
               </span>
@@ -121,9 +139,31 @@ export default function Storefront() {
         </div>
         <button className="category-carousel__arrow category-carousel__arrow--next" type="button" onClick={()=>moveCategories(1)} aria-label="Categorías siguientes"><ChevronRight aria-hidden="true"/></button>
       </div>
-    </section>
+    </section>}
 
-    <section className="official-stores" aria-labelledby="official-stores-title">
+    {catalogOnly && <section className="online-store" id="catalogo" aria-labelledby="online-store-title">
+      <header className="online-store__header">
+        <span>TIENDA ONLINE</span>
+        <h2 id="online-store-title">{selectedCategoryName ?? "Todos los productos"}</h2>
+        <p>{selectedCategoryName ? `Explora todos los productos de ${selectedCategoryName}.` : "Encuentra el aroma y formato perfecto para tus espacios."}</p>
+      </header>
+      <nav className="online-store__filters" aria-label="Filtrar productos por categoría">
+        <button type="button" className={selectedCategory === "todos" ? "is-active" : ""} onClick={() => selectCategory("todos")}>TODOS</button>
+        {homeCategories.map(category => <button type="button" className={selectedCategory === category.slug ? "is-active" : ""} onClick={() => selectCategory(category.slug)} key={category.id}>{category.name}</button>)}
+      </nav>
+      {filteredProducts.length > 0 ? <div className="online-store__grid">
+        {filteredProducts.map(product => <Link className="online-product" href={product.href} key={product.id}>
+          <span className="online-product__image"><Image src={product.image} alt={product.name} fill sizes="(max-width: 700px) 50vw, 25vw" unoptimized/></span>
+          <small>{product.category}</small>
+          <h3>{product.name}</h3>
+          {product.note && <p>{product.note}</p>}
+          <strong>{money(product.price)}</strong>
+          <b>VER PRODUCTO →</b>
+        </Link>)}
+      </div> : <div className="online-store__empty"><strong>No hay productos disponibles en esta categoría.</strong><button type="button" onClick={() => selectCategory("todos")}>VER TODOS LOS PRODUCTOS</button></div>}
+    </section>}
+
+    {!catalogOnly && <section className="official-stores" aria-labelledby="official-stores-title">
       <header>
         <span>TIENDAS OFICIALES</span>
         <h2 id="official-stores-title">Visítanos en nuestras tiendas</h2>
@@ -142,9 +182,9 @@ export default function Storefront() {
           </article>)}
         </div>
       </div>
-    </section>
+    </section>}
 
-    <section className="home-faq" aria-labelledby="home-faq-title"><header><span>¿TIENES DUDAS?</span><h2 id="home-faq-title">Preguntas frecuentes</h2></header><div>{faqs.map((faq)=><details key={faq.id}><summary>{faq.question}<b aria-hidden="true">+</b></summary><p>{faq.answer}</p></details>)}</div></section>
+    {!catalogOnly && <section className="home-faq" aria-labelledby="home-faq-title"><header><span>¿TIENES DUDAS?</span><h2 id="home-faq-title">Preguntas frecuentes</h2></header><div>{faqs.map((faq)=><details key={faq.id}><summary>{faq.question}<b aria-hidden="true">+</b></summary><p>{faq.answer}</p></details>)}</div></section>}
 
     <SiteFooter/>
 

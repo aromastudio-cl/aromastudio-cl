@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Storefront from "./storefront";
 export const metadata: Metadata = { title: "Aroma Studio | Aromas que despiertan emociones", description: "Aromatizantes ambientales premium, venta minorista y mayorista con envíos a todo Chile." };
-export default function Home() { return <Storefront/>; }
+export default function Home() { return <Suspense><Storefront/></Suspense>; }
