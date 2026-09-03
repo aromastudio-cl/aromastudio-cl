@@ -1,0 +1,7 @@
+alter table public.site_settings
+  add column if not exists privacy_title text not null default 'Política de privacidad',
+  add column if not exists privacy_content text not null default 'Aroma Studio utiliza los datos proporcionados por sus clientes exclusivamente para gestionar compras, entregas, consultas y comunicaciones relacionadas con sus servicios. La información se almacena mediante proveedores tecnológicos autorizados y no se vende a terceros. Puedes solicitar acceso, rectificación o eliminación de tus datos escribiendo a hola@aromastudio.cl.',
+  add column if not exists terms_title text not null default 'Términos y condiciones',
+  add column if not exists terms_content text not null default 'Al utilizar este sitio y realizar una compra declaras aceptar las condiciones informadas durante el proceso de pedido. La disponibilidad, precios y características de los productos se confirman al registrar la compra. Aroma Studio podrá contactar al cliente cuando sea necesario validar datos, stock, despacho o pago.',
+  add column if not exists shipping_title text not null default 'Envíos y devoluciones',
+  add column if not exists shipping_content text not null default 'Realizamos despachos dentro de Chile. Los plazos y costos se informan o confirman según el destino del pedido. Si recibes un producto incorrecto o con daños, contáctanos a hola@aromastudio.cl indicando tu número de pedido y adjuntando fotografías para revisar el caso.';
