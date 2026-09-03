@@ -410,7 +410,6 @@
   }
 
   .storefront > .topbar,
-  .storefront > .site-header,
   .storefront > .home-hero,
   .storefront > .promises { display: none !important; }
 
