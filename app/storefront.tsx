@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Search as SearchIcon, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShoppingBag, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import SiteHeader from "./site-header";
@@ -11,8 +11,10 @@ import SiteFooter from "./site-footer";
 import { supabase } from "../lib/supabase-browser";
 import { productVariantHref } from "../lib/product-routes";
 import { productCategoryLabel } from "../lib/catalog-order";
+import "./sale-prices.css";
 
-type Product = { id: string; name: string; family: string; aromaSlug: string; category: string; categorySlug: string; price: number; note: string; image: string; stock: number; href: string };
+type Product = { id: string; name: string; family: string; aromaSlug: string; category: string; categorySlug: string; price: number; normalPrice: number; note: string; image: string; stock: number; href: string };
+type CartItem = { key: string; name: string; variant: string; image: string; price: number; quantity: number };
 
 const money = (value: number) => new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(value);
 
@@ -20,26 +22,23 @@ export default function Storefront({ catalogOnly = false }: { catalogOnly?: bool
   const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [homeCategories, setHomeCategories] = useState<Array<{ id: string; name: string; slug: string; image_url: string | null }>>([]);
-  const [locations, setLocations] = useState<Array<{id:string;name:string;address:string;image_url:string;show_in_hero:boolean}>>([]);
   const [heroImages,setHeroImages]=useState({desktop:"",mobile:""});
+  const [storesSection,setStoresSection]=useState({eyebrow:"TIENDAS OFICIALES",title:"Visítanos en nuestras tiendas",contentEyebrow:"AROMA STUDIO",contentTitle:"Encuentra tu aroma favorito",contentText:"Visita nuestros puntos de venta y descubre una selección de productos y aromas pensados para transformar tus espacios. Nuestro equipo estará disponible para orientarte.",image:"/sobre-nosotros-aromastudio.png"});
   const [faqs,setFaqs]=useState<Array<{id:string;question:string;answer:string}>>([]);
-  const [cart, setCart] = useState<string[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [drawer, setDrawer] = useState(false);
-  const [search, setSearch] = useState(false);
-  const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
   const [selectedAroma, setSelectedAroma] = useState("");
-  const [toast, setToast] = useState("");
   const categoryCarouselRef = useRef<HTMLDivElement>(null);
   const moveCategories = (direction: number) => categoryCarouselRef.current?.scrollBy({ left: direction * categoryCarouselRef.current.clientWidth * .82, behavior: "smooth" });
   useEffect(() => {
+    try { setCart(JSON.parse(localStorage.getItem("aroma-studio-cart") || "[]")); } catch { setCart([]); }
     supabase.from("categories").select("id,name,slug,image_url").eq("active", true).order("sort_order").then(({ data }) => setHomeCategories(data ?? []));
-    supabase.from("store_locations").select("id,name,address,image_url,show_in_hero").eq("active",true).order("sort_order").then(({data})=>setLocations(data??[]));
-    supabase.from("site_settings").select("hero_desktop_url,hero_mobile_url").eq("id",1).maybeSingle().then(({data})=>{if(data)setHeroImages({desktop:data.hero_desktop_url||"",mobile:data.hero_mobile_url||""})});
+    supabase.from("site_settings").select("hero_desktop_url,hero_mobile_url,stores_eyebrow,stores_title,stores_content_eyebrow,stores_content_title,stores_content_text,stores_image_url").eq("id",1).maybeSingle().then(({data})=>{if(data){setHeroImages({desktop:data.hero_desktop_url||"",mobile:data.hero_mobile_url||""});setStoresSection({eyebrow:data.stores_eyebrow||"TIENDAS OFICIALES",title:data.stores_title||"Visítanos en nuestras tiendas",contentEyebrow:data.stores_content_eyebrow||"AROMA STUDIO",contentTitle:data.stores_content_title||"Encuentra tu aroma favorito",contentText:data.stores_content_text||"",image:data.stores_image_url||"/sobre-nosotros-aromastudio.png"})}});
     supabase.from("faqs").select("id,question,answer").eq("active",true).order("sort_order").then(({data})=>setFaqs(data??[]));
     supabase
       .from("products")
-      .select("id,slug,name,scent_notes,aroma_family,price_clp,stock,categories(name,slug),aroma_families(name,slug),product_variants(id,size_value,size_unit,is_default,sort_order,active),product_images(variant_id,image_url,is_primary,sort_order)")
+      .select("id,slug,name,scent_notes,aroma_family,price_clp,stock,categories(name,slug),aroma_families(name,slug),product_variants(id,size_value,size_unit,price_clp,sale_price_clp,is_default,sort_order,active),product_images(variant_id,image_url,is_primary,sort_order)")
       .eq("active", true)
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
@@ -62,7 +61,8 @@ export default function Storefront({ catalogOnly = false }: { catalogOnly?: bool
           aromaSlug: item.aroma_families?.slug ?? item.aroma_family ?? "",
           category: productCategoryLabel(item.categories?.slug ?? "otros", item.categories?.name ?? "Otros"),
           categorySlug: item.categories?.slug ?? "otros",
-          price: item.price_clp,
+          price: variant?.sale_price_clp ?? variant?.price_clp ?? item.price_clp,
+          normalPrice: variant?.price_clp ?? item.price_clp,
           note: item.scent_notes ?? "",
           stock: item.stock,
           image,
@@ -75,12 +75,14 @@ export default function Storefront({ catalogOnly = false }: { catalogOnly?: bool
     setSelectedCategory(searchParams.get("categoria") || "todos");
     setSelectedAroma(searchParams.get("aroma") || "");
   }, [searchParams]);
-  const total = cart.reduce((sum, id) => sum + (products.find(p => p.id === id)?.price ?? 0), 0);
-  const notify = (text: string) => { setToast(text); window.setTimeout(() => setToast(""), 2200); };
-  const normalizedQuery = query.trim().toLocaleLowerCase("es");
-  const searchResults = normalizedQuery.length < 2 ? [] : products.filter(product => `${product.name} ${product.note} ${product.category}`.toLocaleLowerCase("es").includes(normalizedQuery)).slice(0, 6);
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const removeCartItem = (key: string) => setCart(items => {
+    const next = items.filter(item => item.key !== key);
+    localStorage.setItem("aroma-studio-cart", JSON.stringify(next));
+    return next;
+  });
   const filteredProducts = selectedAroma ? products.filter(product => product.aromaSlug === selectedAroma) : selectedCategory === "todos" ? products : products.filter(product => product.categorySlug === selectedCategory);
-  const selectedCategoryName = homeCategories.find(category => category.slug === selectedCategory)?.name;
   const selectCategory = (slug: string) => {
     setSelectedCategory(slug);
     setSelectedAroma("");
@@ -89,28 +91,16 @@ export default function Storefront({ catalogOnly = false }: { catalogOnly?: bool
   };
 
   useEffect(() => {
-    if (!search) return;
-    const close = (event: KeyboardEvent) => { if (event.key === "Escape") setSearch(false); };
-    document.addEventListener("keydown", close);
-    document.body.classList.add("search-is-open");
-    return () => { document.removeEventListener("keydown", close); document.body.classList.remove("search-is-open"); };
-  }, [search]);
+    if (!drawer) return;
+    document.body.classList.add("cart-is-open");
+    return () => document.body.classList.remove("cart-is-open");
+  }, [drawer]);
 
   return <main className="storefront">
     <div className="topbar">ENVÍOS A TODO CHILE · COMPRA SEGURA</div>
-    {catalogOnly && <SiteHeader cartCount={cart.length} onCart={() => setDrawer(true)}/>} 
+    {catalogOnly && <SiteHeader cartCount={cartCount} onCart={() => setDrawer(true)}/>}
     {!catalogOnly && <div className="home-hero-shell" style={{"--hero-desktop-image":heroImages.desktop?`url("${heroImages.desktop}")`:undefined,"--hero-mobile-image":heroImages.mobile?`url("${heroImages.mobile}")`:undefined} as CSSProperties}>
-      <SiteHeader overlay cartCount={cart.length} onSearch={() => setSearch(!search)} onCart={() => setDrawer(true)}/>
-      {search && <div className="search-overlay" role="dialog" aria-modal="true" aria-labelledby="search-title">
-        <button className="search-overlay__backdrop" onClick={() => setSearch(false)} aria-label="Cerrar búsqueda" />
-        <section className="search-panel">
-          <header><div><span>EXPLORA AROMA STUDIO</span><h2 id="search-title">¿Qué aroma buscas?</h2></div><button className="search-panel__close" onClick={() => setSearch(false)} aria-label="Cerrar búsqueda"><X /></button></header>
-          <div className="search-panel__field"><SearchIcon aria-hidden="true"/><input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Busca por nombre, aroma o nota…" aria-label="Buscar productos"/>{query && <button onClick={() => setQuery("")} aria-label="Limpiar búsqueda"><X /></button>}</div>
-          <div className="search-panel__content">
-            {query.trim().length < 2 ? <p className="search-panel__hint">Escribe al menos dos caracteres para comenzar.</p> : searchResults.length ? <div className="search-panel__results">{searchResults.map(product => <Link href={product.href} key={product.id} onClick={() => setSearch(false)}><span><Image src={product.image} alt="" fill sizes="72px" unoptimized/></span><div><small>{product.category}</small><strong>{product.name}</strong><p>{product.note || "Fragancia Aroma Studio"}</p></div><b>{money(product.price)}</b></Link>)}</div> : <div className="search-panel__empty"><strong>Sin resultados</strong><p>No encontramos productos para “{query.trim()}”. Prueba con otro aroma o categoría.</p><Link href="/tienda" onClick={() => setSearch(false)}>VER TODO EL CATÁLOGO</Link></div>}
-          </div>
-        </section>
-      </div>}
+      <SiteHeader overlay cartCount={cartCount} onCart={() => setDrawer(true)}/>
       <section className="home-hero">
         <div className="hero-content">
           <h1><em>Descubre el aroma perfecto</em><br/>para cada espacio</h1>
@@ -141,12 +131,7 @@ export default function Storefront({ catalogOnly = false }: { catalogOnly?: bool
       </div>
     </section>}
 
-    {catalogOnly && <section className="online-store" id="catalogo" aria-labelledby="online-store-title">
-      <header className="online-store__header">
-        <span>TIENDA ONLINE</span>
-        <h2 id="online-store-title">{selectedCategoryName ?? "Todos los productos"}</h2>
-        <p>{selectedCategoryName ? `Explora todos los productos de ${selectedCategoryName}.` : "Encuentra el aroma y formato perfecto para tus espacios."}</p>
-      </header>
+    {catalogOnly && <section className="online-store" id="catalogo" aria-label="Productos de la tienda">
       <nav className="online-store__filters" aria-label="Filtrar productos por categoría">
         <button type="button" className={selectedCategory === "todos" ? "is-active" : ""} onClick={() => selectCategory("todos")}>TODOS</button>
         {homeCategories.map(category => <button type="button" className={selectedCategory === category.slug ? "is-active" : ""} onClick={() => selectCategory(category.slug)} key={category.id}>{category.name}</button>)}
@@ -157,7 +142,7 @@ export default function Storefront({ catalogOnly = false }: { catalogOnly?: bool
           <small>{product.category}</small>
           <h3>{product.name}</h3>
           {product.note && <p>{product.note}</p>}
-          <strong>{money(product.price)}</strong>
+          <strong className={product.price < product.normalPrice ? "is-sale" : ""}>{product.price < product.normalPrice && <del>{money(product.normalPrice)}</del>}{money(product.price)}</strong>
           <b>VER PRODUCTO →</b>
         </Link>)}
       </div> : <div className="online-store__empty"><strong>No hay productos disponibles en esta categoría.</strong><button type="button" onClick={() => selectCategory("todos")}>VER TODOS LOS PRODUCTOS</button></div>}
@@ -165,21 +150,17 @@ export default function Storefront({ catalogOnly = false }: { catalogOnly?: bool
 
     {!catalogOnly && <section className="official-stores" aria-labelledby="official-stores-title">
       <header>
-        <span>TIENDAS OFICIALES</span>
-        <h2 id="official-stores-title">Visítanos en nuestras tiendas</h2>
+        <span>{storesSection.eyebrow}</span>
+        <h2 id="official-stores-title">{storesSection.title}</h2>
       </header>
       <div className="official-stores__layout">
         <div className="official-stores__photo">
-          <Image src={locations.find(location=>location.show_in_hero)?.image_url??locations[0]?.image_url??"/sobre-nosotros-aromastudio.png"} alt="Sucursal Aroma Studio" fill sizes="(max-width: 800px) 100vw, 50vw" unoptimized />
+          <Image src={storesSection.image} alt={storesSection.title} fill sizes="(max-width: 800px) 100vw, 50vw" unoptimized />
         </div>
         <div className="official-stores__content">
-          <span>AROMA STUDIO</span>
-          <h3>Encuentra tu aroma favorito</h3>
-          <p>Visita nuestros puntos de venta y descubre una selección de productos y aromas pensados para transformar tus espacios. Nuestro equipo estará disponible para orientarte.</p>
-          {locations.map(location=><article key={location.id}>
-            <div><small>TIENDA</small><strong>{location.name}</strong><p>{location.address}</p></div>
-            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.address)}`} target="_blank" rel="noopener noreferrer">CÓMO LLEGAR →</a>
-          </article>)}
+          <span>{storesSection.contentEyebrow}</span>
+          <h3>{storesSection.contentTitle}</h3>
+          <p>{storesSection.contentText}</p>
         </div>
       </div>
     </section>}
@@ -188,7 +169,6 @@ export default function Storefront({ catalogOnly = false }: { catalogOnly?: bool
 
     <SiteFooter/>
 
-    {drawer && <><button className="drawer-overlay" onClick={() => setDrawer(false)} aria-label="Cerrar carrito"/><aside className="cart-drawer"><header><h2>Tu carrito ({cart.length})</h2><button onClick={() => setDrawer(false)}>×</button></header><div className="cart-items">{cart.length === 0 ? <p>Tu carrito está vacío.</p> : cart.map((id, index) => { const p = products.find(x => x.id === id)!; return <article key={`${id}-${index}`}><Image src={p.image} alt="" width={55} height={65} unoptimized={p.image.startsWith("http")}/><div><strong>{p.name}</strong><span>{money(p.price)}</span></div><button onClick={() => setCart(items => items.filter((_, i) => i !== index))}>×</button></article>})}</div><footer><span>Subtotal</span><strong>{money(total)}</strong><button onClick={() => notify("Checkout listo para conectar con tu medio de pago")}>FINALIZAR COMPRA</button></footer></aside></>}
-    {toast && <div className="toast">✓ {toast}</div>}
+    {drawer && <><button className="drawer-overlay" onClick={() => setDrawer(false)} aria-label="Cerrar carrito"/><aside className="cart-drawer" role="dialog" aria-modal="true" aria-label="Carrito de compra"><header><h2>Tu carrito ({cartCount})</h2><button onClick={() => setDrawer(false)} aria-label="Cerrar carrito">×</button></header><div className="cart-items">{cart.length === 0 ? <div className="cart-empty"><ShoppingBag/><strong>Tu carrito está vacío</strong><Link href="/tienda" onClick={() => setDrawer(false)}>EXPLORAR PRODUCTOS</Link></div> : cart.map(item => <article key={item.key}><Image src={item.image} alt={item.name} width={64} height={78} unoptimized={item.image.startsWith("http")}/><div><strong>{item.name}</strong><span>{item.variant}</span><small>{item.quantity} × {money(item.price)}</small></div><button onClick={() => removeCartItem(item.key)} aria-label={`Eliminar ${item.name}`}>×</button></article>)}</div><footer><span>Subtotal</span><strong>{money(total)}</strong><button disabled={!cart.length} onClick={() => { window.location.href="/checkout" }}>FINALIZAR COMPRA</button></footer></aside></>}
   </main>;
 }

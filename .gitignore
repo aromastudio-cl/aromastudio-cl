@@ -26,6 +26,7 @@
 # debug
 npm-debug.log*
 .dev-*.log
+.local-dev.log
 .preview.log
 yarn-debug.log*
 yarn-error.log*
@@ -42,3 +43,8 @@ yarn-error.log*
 /outputs/
 /work/
 *.tsbuildinfo
+
+# local image-generation and Supabase CLI artifacts
+/art-direction/
+/tmp/
+/supabase/.temp/

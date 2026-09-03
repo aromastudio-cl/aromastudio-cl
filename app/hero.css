@@ -181,7 +181,7 @@
 }
 
 .online-store {
-  padding: 88px 4.5vw 104px;
+  padding: 40px 4.5vw 104px;
   background: #f8f5f0;
   scroll-margin-top: 58px;
 }
@@ -656,7 +656,7 @@
     background: #fff;
   }
 
-  .online-store { padding: 62px 16px 78px; scroll-margin-top: 38px; }
+  .online-store { padding: 28px 16px 78px; scroll-margin-top: 38px; }
   .online-store__header { margin-bottom: 26px; }
   .online-store__header > span { font-size: 10px; }
   .online-store__header h2 { font-size: 38px; }

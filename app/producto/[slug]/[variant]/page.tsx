@@ -12,7 +12,7 @@ const getProduct = cache(async ({ slug, variant: variantSegment }: RouteParams):
   const supabase = createPublicSupabaseClient();
   const { data, error } = await supabase
     .from("products")
-    .select("id,slug,name,description,scent_notes,sku,active,categories(name,slug),product_variants(id,name,sku,price_clp,stock,size_value,size_unit,active,sort_order,scents(name,slug)),product_images(variant_id,image_url,is_primary,sort_order,active)")
+    .select("id,slug,name,description,scent_notes,sku,active,categories(name,slug),product_variants(id,name,sku,price_clp,sale_price_clp,stock,size_value,size_unit,active,sort_order,scents(name,slug)),product_images(variant_id,image_url,is_primary,sort_order,active)")
     .eq("slug", slug)
     .eq("active", true)
     .single();
@@ -47,7 +47,8 @@ const getProduct = cache(async ({ slug, variant: variantSegment }: RouteParams):
     notes: product.scent_notes ?? "Fragancia premium seleccionada",
     sku: selected.sku ?? product.sku,
     image,
-    price: selected.price_clp,
+    price: selected.sale_price_clp ?? selected.price_clp,
+    normalPrice: selected.price_clp,
     stock: selected.stock,
     variantId: selected.id,
     variantName: selected.name,
@@ -55,7 +56,8 @@ const getProduct = cache(async ({ slug, variant: variantSegment }: RouteParams):
       id: item.id,
       name: item.name,
       href: productVariantHref(product.slug, item.size_value, item.size_unit),
-      price: item.price_clp,
+      price: item.sale_price_clp ?? item.price_clp,
+      normalPrice: item.price_clp,
       stock: item.stock,
       active: item.active !== false,
     })),

@@ -3,15 +3,17 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Check, Minus, Plus, ShoppingBag, Truck } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import SiteFooter from "../../../site-footer";
 import SiteHeader from "../../../site-header";
+import "../../../sale-prices.css";
 
 export type ProductVariantOption = {
   id: string;
   name: string;
   href: string;
   price: number;
+  normalPrice: number;
   stock: number;
   active: boolean;
 };
@@ -26,6 +28,7 @@ export type ProductDetailData = {
   sku: string;
   image: string;
   price: number;
+  normalPrice: number;
   stock: number;
   variantId: string;
   variantName: string;
@@ -34,6 +37,7 @@ export type ProductDetailData = {
 };
 
 export type ProductReview = { id: string; reviewerName: string; rating: number; comment: string; createdAt: string; variantName: string | null };
+type CartItem = { key: string; name: string; variant: string; image: string; price: number; quantity: number };
 
 const money = (value: number) =>
   new Intl.NumberFormat("es-CL", {
@@ -44,18 +48,39 @@ const money = (value: number) =>
 
 export default function ProductDetail({ product }: { product: ProductDetailData }) {
   const [quantity, setQuantity] = useState(1);
-  const [cartCount, setCartCount] = useState(0);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [drawer, setDrawer] = useState(false);
-  const [added, setAdded] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewMessage, setReviewMessage] = useState("");
   const [sendingReview, setSendingReview] = useState(false);
 
+  useEffect(() => {
+    try { setCart(JSON.parse(localStorage.getItem("aroma-studio-cart") || "[]")); } catch { setCart([]); }
+  }, []);
+  useEffect(() => {
+    if (!drawer) return;
+    document.body.classList.add("cart-is-open");
+    return () => document.body.classList.remove("cart-is-open");
+  }, [drawer]);
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const addToCart = () => {
-    setCartCount((count) => count + quantity);
-    setAdded(true);
+    setCart(items => {
+      const key = `${product.productId}:${product.variantId}`;
+      const existing = items.find(item => item.key === key);
+      const next = existing
+        ? items.map(item => item.key === key ? { ...item, quantity: Math.min(product.stock, item.quantity + quantity) } : item)
+        : [...items, { key, name: product.name, variant: product.variantName, image: product.image, price: product.price, quantity }];
+      localStorage.setItem("aroma-studio-cart", JSON.stringify(next));
+      return next;
+    });
     setDrawer(true);
   };
+  const removeCartItem = (key: string) => setCart(items => {
+    const next = items.filter(item => item.key !== key);
+    localStorage.setItem("aroma-studio-cart", JSON.stringify(next));
+    return next;
+  });
 
   const submitReview = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -98,7 +123,7 @@ export default function ProductDetail({ product }: { product: ProductDetailData 
           <p className="product-detail__eyebrow">{product.category}</p>
           <h1>{product.name}</h1>
           <p className="product-detail__aroma">Aroma <strong>{product.aroma}</strong></p>
-          <p className="product-detail__price">{money(product.price)}</p>
+          <p className={`product-detail__price${product.price < product.normalPrice ? " is-sale" : ""}`}>{product.price < product.normalPrice && <del>{money(product.normalPrice)}</del>}<strong>{money(product.price)}</strong></p>
           <p className="product-detail__description">{product.description}</p>
 
           <div className="product-detail__notes">
@@ -116,7 +141,7 @@ export default function ProductDetail({ product }: { product: ProductDetailData 
                   className={option.id === product.variantId ? "is-active" : ""}
                 >
                   {option.name}
-                  <small>{money(option.price)}</small>
+                  <small>{option.price < option.normalPrice && <del>{money(option.normalPrice)}</del>}{money(option.price)}</small>
                 </Link>
               ))}
             </div>
@@ -171,17 +196,12 @@ export default function ProductDetail({ product }: { product: ProductDetailData 
       {drawer && (
         <>
           <button className="drawer-overlay" onClick={() => setDrawer(false)} aria-label="Cerrar carrito" />
-          <aside className="cart-drawer">
-            <header><h2>Tu carrito ({cartCount})</h2><button onClick={() => setDrawer(false)}>×</button></header>
+          <aside className="cart-drawer" role="dialog" aria-modal="true" aria-label="Carrito de compra">
+            <header><h2>Tu carrito ({cartCount})</h2><button onClick={() => setDrawer(false)} aria-label="Cerrar carrito">×</button></header>
             <div className="cart-items">
-              {added ? (
-                <article>
-                  <Image src={product.image} alt="" width={55} height={68} unoptimized={product.image.startsWith("http")} />
-                  <div><strong>{product.name}</strong><span>{product.variantName} · {quantity} × {money(product.price)}</span></div>
-                </article>
-              ) : <p>Tu carrito está vacío.</p>}
+              {cart.length ? cart.map(item => <article key={item.key}><Image src={item.image} alt={item.name} width={64} height={78} unoptimized={item.image.startsWith("http")} /><div><strong>{item.name}</strong><span>{item.variant}</span><small>{item.quantity} × {money(item.price)}</small></div><button onClick={() => removeCartItem(item.key)} aria-label={`Eliminar ${item.name}`}>×</button></article>) : <div className="cart-empty"><ShoppingBag/><strong>Tu carrito está vacío</strong><Link href="/tienda" onClick={() => setDrawer(false)}>EXPLORAR PRODUCTOS</Link></div>}
             </div>
-            <footer><span>Subtotal</span><strong>{money(product.price * cartCount)}</strong><button>FINALIZAR COMPRA</button></footer>
+            <footer><span>Subtotal</span><strong>{money(cartTotal)}</strong><button disabled={!cart.length} onClick={() => { window.location.href="/checkout" }}>FINALIZAR COMPRA</button></footer>
           </aside>
         </>
       )}

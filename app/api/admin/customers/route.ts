@@ -71,3 +71,37 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "No fue posible crear el cliente." }, { status: 500 });
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const client = await authorize(request);
+    if (!client) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    const body = await request.json();
+    const id = String(body.id ?? "");
+    const email = String(body.email ?? "").trim().toLowerCase();
+    const fullName = String(body.full_name ?? "").trim();
+    const phone = String(body.phone ?? "").trim();
+    if (!id || fullName.length < 3 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: "Revisa el nombre y correo del cliente." }, { status: 400 });
+    const { error: authError } = await client.auth.admin.updateUserById(id, { email, email_confirm: true, user_metadata: { full_name: fullName, phone } });
+    if (authError) throw authError;
+    const { data, error } = await client.from("customer_profiles").upsert({ id, email, full_name: fullName, phone, updated_at: new Date().toISOString() }).select("id,email,full_name,phone,created_at").single();
+    if (error) throw error;
+    return NextResponse.json({ customer: data });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "No fue posible actualizar el cliente." }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const client = await authorize(request);
+    if (!client) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    const id = new URL(request.url).searchParams.get("id") ?? "";
+    if (!id) return NextResponse.json({ error: "Cliente no válido." }, { status: 400 });
+    const { error } = await client.auth.admin.deleteUser(id);
+    if (error) throw error;
+    return NextResponse.json({ deleted: true });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "No fue posible eliminar el cliente." }, { status: 500 });
+  }
+}

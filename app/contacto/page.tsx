@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { MapPin, MessageCircle, Phone } from "lucide-react";
+import { MapPin, Phone } from "lucide-react";
 import { useEffect, useState } from "react";
 import SiteHeader from "../site-header";
 import SiteFooter from "../site-footer";
+import WhatsAppIcon from "../whatsapp-icon";
 import { supabase } from "../../lib/supabase-browser";
 import "./contacto.css";
 
@@ -28,17 +29,14 @@ export default function ContactPage() {
 
   return <main className="contact-page">
     <SiteHeader/>
-    <section className="contact-hero"><span>ESTAMOS PARA AYUDARTE</span><h1>Hablemos</h1><p>Encuentra atención directa, nuestras redes y todos los puntos de venta de Aroma Studio.</p></section>
-    <section className="contact-content">
+    <section className="contact-content" style={{ paddingTop: "clamp(28px, 4vw, 56px)" }}>
       <div className="contact-direct">
-        <header><span>CONTACTO DIRECTO</span><h2>¿Cómo podemos ayudarte?</h2></header>
         <div className="contact-methods">
           {settings.phone&&<a href={`tel:${settings.phone.replace(/\s/g,"")}`}><Phone/><small>TELÉFONO</small><strong>{settings.phone}</strong><span>Llamar ahora →</span></a>}
-          {settings.whatsapp_enabled&&whatsapp&&<a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer"><MessageCircle/><small>WHATSAPP</small><strong>{settings.phone||`+${whatsapp}`}</strong><span>Iniciar conversación →</span></a>}
+          {settings.whatsapp_enabled&&whatsapp&&<a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer"><WhatsAppIcon/><small>WHATSAPP</small><strong>{settings.phone||`+${whatsapp}`}</strong><span>Iniciar conversación →</span></a>}
         </div>
         {socials.length>0&&<div className="contact-social"><p>SÍGUENOS</p>{socials.map(({name,href,mark})=><a href={href} target="_blank" rel="noopener noreferrer" key={name}><b>{mark}</b><span>{name}</span></a>)}</div>}
       </div>
-      <div className="contact-note"><span>AROMA STUDIO</span><blockquote>“Queremos ayudarte a encontrar el aroma perfecto para cada espacio.”</blockquote><p>Escríbenos por nuestros canales oficiales o visítanos en una de nuestras sucursales.</p></div>
     </section>
     {locations.length>0&&<section className="contact-locations"><header><span>TIENDAS</span><h2>Visítanos</h2><p>Conoce nuestros puntos de venta y encuentra tus aromas favoritos.</p></header><div>{locations.map(location=><article key={location.id}>{location.image_url&&<figure><Image src={location.image_url} alt={location.name} fill sizes="(max-width: 700px) 100vw, 50vw" unoptimized/></figure>}<div><MapPin/><small>SUCURSAL</small><h3>{location.name}</h3><p>{location.address}</p><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.address)}`} target="_blank" rel="noopener noreferrer">CÓMO LLEGAR →</a></div></article>)}</div></section>}
     <SiteFooter/>

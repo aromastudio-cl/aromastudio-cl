@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { ArrowRight, Check, Eye, EyeOff, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowRight, Check, Eye, EyeOff, Home, LogOut, Package, ShieldCheck, UserRound } from "lucide-react";
 import { supabase } from "../../lib/supabase-browser";
 import SiteHeader from "../site-header";
 import SiteFooter from "../site-footer";
 import "./cuenta.css";
 
 type View = "login" | "register" | "forgot" | "recovery";
+type CustomerOrder = { id:string; order_number:string; status:string; total_clp:number; created_at:string; payment_method:string };
 
 export default function AccountPage() {
   const [session, setSession] = useState<Session | null>(null);
@@ -20,6 +21,8 @@ export default function AccountPage() {
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [profile, setProfile] = useState({ full_name: "", phone: "" });
+  const [accountSection, setAccountSection] = useState<"welcome" | "profile" | "orders">("welcome");
+  const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setReady(true); });
@@ -33,6 +36,7 @@ export default function AccountPage() {
   useEffect(() => {
     if (!session) return;
     supabase.from("customer_profiles").select("full_name,phone").eq("id", session.user.id).maybeSingle().then(({ data }) => setProfile({ full_name: data?.full_name || session.user.user_metadata?.full_name || "", phone: data?.phone || session.user.user_metadata?.phone || "" }));
+    supabase.from("orders").select("id,order_number,status,total_clp,created_at,payment_method").eq("customer_id",session.user.id).order("created_at",{ascending:false}).then(({data})=>setCustomerOrders(data??[]));
   }, [session]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -88,13 +92,21 @@ export default function AccountPage() {
   return <main className="account-page">
     <SiteHeader />
     <section className="account-shell">
-      <div className="account-copy"><span>AROMA STUDIO</span><h1>{session ? `Hola, ${name}` : "Tu cuenta"}</h1><p>{session ? "Desde aquí podrás consultar y mantener tus datos de cliente." : "Crea tu cuenta para disfrutar una experiencia de compra más simple."}</p></div>
+      {session ? <aside className="account-side-menu"><span>MI CUENTA</span><h1>Hola, {profile.full_name?.split(" ")[0] || name}</h1><nav aria-label="Menú de mi cuenta"><button className={accountSection==="welcome"?"active":""} onClick={()=>setAccountSection("welcome")}><Home/>Bienvenida</button><button className={accountSection==="orders"?"active":""} onClick={()=>setAccountSection("orders")}><Package/>Mis compras</button><button className={accountSection==="profile"?"active":""} onClick={()=>setAccountSection("profile")}><UserRound/>Mis datos</button></nav></aside> : <div className="account-copy"><span>AROMA STUDIO</span><h1>Tu cuenta</h1><p>Crea tu cuenta para disfrutar una experiencia de compra más simple.</p></div>}
       {!ready ? <div className="account-card account-loading">Cargando…</div> : session ? (
-        <div className="account-card account-profile">
-          <div className="account-avatar"><UserRound /></div><span>SESIÓN ACTIVA</span><h2>{name}</h2><p>{session.user.email}</p>
-          <form className="account-profile-form" onSubmit={saveProfile}><label>Nombre completo<input value={profile.full_name} onChange={event => setProfile({ ...profile, full_name: event.target.value })} autoComplete="name" required/></label><label>Teléfono<input type="tel" value={profile.phone} onChange={event => setProfile({ ...profile, phone: event.target.value })} autoComplete="tel" placeholder="+56 9 1234 5678"/></label>{error && <p className="account-error" role="alert">{error}</p>}{message && <p className="account-success"><Check />{message}</p>}<button className="account-submit" disabled={busy}>{busy ? "GUARDANDO…" : "GUARDAR MIS DATOS"}</button></form>
-          <Link href="/tienda">IR A LA TIENDA <ArrowRight /></Link>
-          <button onClick={() => supabase.auth.signOut()}><LogOut /> CERRAR SESIÓN</button>
+        <div className="customer-dashboard">
+          <header className="customer-dashboard__header">
+            <div className="account-avatar"><UserRound /></div>
+            <div><span>MI CUENTA</span><h2>{profile.full_name || name}</h2><p>{session.user.email}</p></div>
+            <button className="account-logout" onClick={() => supabase.auth.signOut()}><LogOut /> CERRAR SESIÓN</button>
+          </header>
+          {accountSection === "welcome" ? <section className="customer-dashboard__content customer-welcome"><div className="dashboard-section-heading"><span>BIENVENIDA</span><h3>Tu espacio Aroma Studio</h3><p>Administra tus datos personales, revisa el estado de tus compras y continúa descubriendo aromas para tus espacios.</p></div><div className="welcome-actions"><button onClick={()=>setAccountSection("orders")}><Package/><span><strong>Revisar mis compras</strong><small>Consulta tus pedidos y su estado</small></span><ArrowRight/></button><button onClick={()=>setAccountSection("profile")}><UserRound/><span><strong>Editar mis datos</strong><small>Actualiza tu información de contacto</small></span><ArrowRight/></button><Link href="/tienda"><Home/><span><strong>Ir a la tienda</strong><small>Explora todos nuestros productos</small></span><ArrowRight/></Link></div></section> : accountSection === "profile" ? <section className="customer-dashboard__content">
+            <div className="dashboard-section-heading"><span>INFORMACIÓN PERSONAL</span><h3>Edita tus datos</h3><p>Mantén actualizados tus datos de contacto para facilitar tus próximas compras.</p></div>
+            <form className="account-profile-form" onSubmit={saveProfile}><label>Nombre completo<input value={profile.full_name} onChange={event => setProfile({ ...profile, full_name: event.target.value })} autoComplete="name" required/></label><label>Correo electrónico<input value={session.user.email || ""} disabled aria-label="Correo electrónico"/></label><label>Teléfono<input type="tel" value={profile.phone} onChange={event => setProfile({ ...profile, phone: event.target.value })} autoComplete="tel" placeholder="+56 9 1234 5678"/></label>{error && <p className="account-error" role="alert">{error}</p>}{message && <p className="account-success"><Check />{message}</p>}<button className="account-submit" disabled={busy}>{busy ? "GUARDANDO…" : "GUARDAR CAMBIOS"}</button></form>
+          </section> : <section className="customer-dashboard__content customer-orders">
+            <div className="dashboard-section-heading"><span>HISTORIAL</span><h3>Mis compras</h3><p>Aquí podrás consultar el estado y el detalle de tus pedidos.</p></div>
+            {customerOrders.length?<div className="customer-order-list">{customerOrders.map(item=><article key={item.id}><div><small>PEDIDO</small><strong>{item.order_number}</strong></div><div><small>FECHA</small><span>{new Intl.DateTimeFormat("es-CL",{dateStyle:"medium"}).format(new Date(item.created_at))}</span></div><div><small>TOTAL</small><span>{new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(item.total_clp)}</span></div><b>{item.status==="new"?"Recibido":item.status}</b></article>)}</div>:<div className="orders-empty"><Package/><h4>Aún no tienes compras registradas</h4><p>Cuando realices una compra, podrás revisar aquí su estado y sus productos.</p><Link href="/tienda">IR A LA TIENDA <ArrowRight/></Link></div>}
+          </section>}
         </div>
       ) : (
         <div className="account-card">
