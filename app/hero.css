@@ -383,7 +383,7 @@
   .mobile-category-carousel::-webkit-scrollbar { display: none; }
 
   .mobile-category-carousel article {
-    flex: 0 0 min(78vw, 360px);
+    flex: 0 0 min(64vw, 300px);
     scroll-snap-align: start;
     text-align: center;
   }
@@ -392,8 +392,8 @@
 
   .mobile-category-carousel__image {
     width: 100%;
-    aspect-ratio: .82;
-    border-radius: 18px;
+    aspect-ratio: .72;
+    border-radius: 15px;
     display: block;
     position: relative;
     overflow: hidden;
@@ -403,21 +403,21 @@
   .mobile-category-carousel__image img { object-fit: cover; }
 
   .mobile-category-carousel h3 {
-    margin: 19px 0 9px;
-    font: 500 27px/1.1 var(--font-display), Georgia, serif;
+    margin: 15px 0 8px;
+    font: 500 23px/1.1 var(--font-display), Georgia, serif;
   }
 
   .mobile-category-carousel h3 b {
     margin-left: 7px;
     font-family: var(--font-sans), Arial, sans-serif;
-    font-size: 24px;
+    font-size: 21px;
     font-weight: 400;
   }
 
   .mobile-category-carousel article p {
     margin: 0 auto;
     color: #6e6861;
-    font-size: 12px;
+    font-size: 11px;
     line-height: 1.55;
   }
 
