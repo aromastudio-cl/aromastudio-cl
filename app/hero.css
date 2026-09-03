@@ -6,6 +6,10 @@
   display: none;
 }
 
+.mobile-category-carousel {
+  display: none;
+}
+
 .home-hero {
   width: 100%;
   height: clamp(520px, 31vw, 590px);
@@ -361,6 +365,59 @@
     color: #69635d;
     font-size: 13px;
     line-height: 1.65;
+  }
+
+  .mobile-category-carousel {
+    width: calc(100% + 28px);
+    margin: 0 -14px 48px;
+    padding: 0 18px 8px;
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .mobile-category-carousel::-webkit-scrollbar { display: none; }
+
+  .mobile-category-carousel article {
+    flex: 0 0 min(78vw, 360px);
+    scroll-snap-align: start;
+    text-align: center;
+  }
+
+  .mobile-category-carousel a { display: block; }
+
+  .mobile-category-carousel__image {
+    width: 100%;
+    aspect-ratio: .82;
+    border-radius: 18px;
+    display: block;
+    position: relative;
+    overflow: hidden;
+    background: #eee7df;
+  }
+
+  .mobile-category-carousel__image img { object-fit: cover; }
+
+  .mobile-category-carousel h3 {
+    margin: 19px 0 9px;
+    font: 500 27px/1.1 var(--font-display), Georgia, serif;
+  }
+
+  .mobile-category-carousel h3 b {
+    margin-left: 7px;
+    font-family: var(--font-sans), Arial, sans-serif;
+    font-size: 24px;
+    font-weight: 400;
+  }
+
+  .mobile-category-carousel article p {
+    margin: 0 auto;
+    color: #6e6861;
+    font-size: 12px;
+    line-height: 1.55;
   }
 
   .storefront > .catalog > .section-title { display: none; }

@@ -15,6 +15,14 @@ type Product = { id: string; name: string; family: string; category: string; cat
 
 const money = (value: number) => new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(value);
 
+const mobileCategories = [
+  { name: "Home Spray", description: "Impacto inmediato: renueva tu espacio en un solo gesto.", image: "/products/editorial/home-spray-ambiente.webp" },
+  { name: "Difusor de Varillas", description: "Aroma constante que acompaña tus espacios cada día.", image: "/products/editorial/mikado-varillas.webp" },
+  { name: "Humidificadores", description: "Una bruma delicada para crear ambientes de bienestar.", image: "/products/generated/humidificadores-mango.webp" },
+  { name: "Esencias Puras", description: "Fragancias concentradas para personalizar cada momento.", image: "/products/generated/esencias-puras-mango.webp" },
+  { name: "Difusor para Auto", description: "Tu aroma favorito también puede acompañarte en el camino.", image: "/products/generated/difusor-auto-mango.webp" },
+];
+
 export default function Storefront() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -119,7 +127,7 @@ export default function Storefront() {
       <article><Headphones aria-hidden="true"/><div><strong>ATENCIÓN PERSONALIZADA</strong><span>Estamos para ayudarte.</span></div></article>
     </section>
 
-    <section className="catalog" id="productos"><div className="mobile-catalog-intro"><span>EXPLORA</span><h2>Categorías de productos</h2><p>Un mismo ritual, distintas maneras de vivirlo. Elige el formato que mejor acompaña tu espacio.</p></div><div className="section-title"><p>PRODUCTOS DESTACADOS</p><h2>Encuentra tu favorito</h2><i/></div><div className="filters" id="aromas">{categories.map(category => <button key={category} className={activeCategory === category ? "active" : ""} onClick={() => setActiveCategory(category)}>{category.toUpperCase()}</button>)}</div>
+    <section className="catalog" id="productos"><div className="mobile-catalog-intro"><span>EXPLORA</span><h2>Categorías de productos</h2><p>Un mismo ritual, distintas maneras de vivirlo. Elige el formato que mejor acompaña tu espacio.</p></div><div className="mobile-category-carousel" aria-label="Categorías de productos">{mobileCategories.map(category => <article key={category.name}><Link href="/tienda"><span className="mobile-category-carousel__image"><Image src={category.image} alt={`${category.name} de Aroma Studio`} fill sizes="78vw"/></span><h3>{category.name}<b aria-hidden="true">→</b></h3><p>{category.description}</p></Link></article>)}</div><div className="section-title"><p>PRODUCTOS DESTACADOS</p><h2>Encuentra tu favorito</h2><i/></div><div className="filters" id="aromas">{categories.map(category => <button key={category} className={activeCategory === category ? "active" : ""} onClick={() => setActiveCategory(category)}>{category.toUpperCase()}</button>)}</div>
       <div className="product-list">{visible.map(product => <article className="product-card" key={product.id}><Link href={product.href} className="product-photo"><Image src={product.image} alt={`Aromatizante ${product.name} de Aroma Studio`} fill sizes="(max-width: 850px) 50vw, 20vw" unoptimized={product.image.startsWith("http")}/></Link><h3><Link href={product.href}>{product.name}</Link></h3><p>{product.family}</p><strong>{money(product.price)}</strong><button disabled={product.stock === 0} onClick={() => add(product.id)}>{product.stock === 0 ? "SIN STOCK" : "AGREGAR AL CARRITO"}</button></article>)}</div>
       {!loadingProducts && visible.length === 0 && <p className="no-results">No hay productos destacados en esta categoría.</p>}<Link className="btn btn-outline" href="/tienda">VER TODOS LOS AROMAS</Link>
     </section>
