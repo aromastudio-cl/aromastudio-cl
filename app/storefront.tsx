@@ -10,6 +10,7 @@ import SiteFooter from "./site-footer";
 import { supabase } from "../lib/supabase-browser";
 import { productVariantHref } from "../lib/product-routes";
 import { productCategoryLabel, productCategoryRank } from "../lib/catalog-order";
+import MobileMenuDrawer from "./mobile-menu-drawer";
 
 type Product = { id: string; name: string; family: string; category: string; categorySlug: string; price: number; note: string; image: string; stock: number; href: string };
 
@@ -99,13 +100,7 @@ export default function Storefront() {
           <Link href="/tienda" aria-label="Ir a la tienda"><ShoppingBag/></Link>
         </div>
       </header>
-      {mobileMenu && <><button className="mobile-menu-drawer__backdrop" onClick={() => setMobileMenu(false)} aria-label="Cerrar menú"/><nav className="mobile-menu-drawer" aria-label="Navegación móvil">
-        <button className="mobile-menu-drawer__close" onClick={() => setMobileMenu(false)} aria-label="Cerrar menú"><X/></button>
-        <Link className="mobile-menu-drawer__home" href="/" onClick={() => setMobileMenu(false)}>Inicio</Link>
-        <section><h2>Aromas</h2><div className="mobile-menu-drawer__aromas"><Link href="/tienda"><i className="aroma-dot aroma-dot--frutal"/>Frutales</Link><Link href="/tienda"><i className="aroma-dot aroma-dot--citrico"/>Cítricos</Link><Link href="/tienda"><i className="aroma-dot aroma-dot--amaderado"/>Amaderados</Link><Link href="/tienda"><i className="aroma-dot aroma-dot--dulce"/>Dulces</Link></div></section>
-        <section><h2>Catálogo</h2><div className="mobile-menu-drawer__links"><Link href="/tienda">Home Sprays</Link><Link href="/tienda">Difusores de Varillas</Link><Link href="/tienda">Humidificadores</Link><Link href="/tienda">Esencias Puras</Link><Link href="/tienda">Difusores para Auto</Link></div></section>
-        <section><h2>Contacto</h2><div className="mobile-menu-drawer__links"><a href="https://wa.me/56993158300" target="_blank" rel="noopener noreferrer">WhatsApp</a><Link href="/nosotros">Sobre Aroma Studio</Link><Link href="/mayoristas">Empresas</Link></div></section>
-      </nav></>}
+      <MobileMenuDrawer open={mobileMenu} onClose={() => setMobileMenu(false)}/>
       {search && <form className="mobile-public-cover__search" action="/tienda"><Search/><input name="buscar" autoFocus placeholder="Buscar productos…" aria-label="Buscar productos"/></form>}
       <div className="mobile-public-cover__copy">
         <h1><em>Descubre el aroma perfecto</em><span>para cada espacio</span></h1>
