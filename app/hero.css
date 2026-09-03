@@ -279,7 +279,6 @@
     object-fit: contain;
   }
 
-  .mobile-public-cover__menu,
   .mobile-public-cover__search {
     position: absolute;
     z-index: 4;
@@ -294,12 +293,98 @@
     box-shadow: 0 15px 35px rgba(0,0,0,.28);
   }
 
-  .mobile-public-cover__menu { display: flex; flex-direction: column; gap: 18px; }
-  .mobile-public-cover__menu a { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
   .mobile-public-cover__search { display: flex; align-items: center; gap: 10px; }
   .mobile-public-cover__search svg { width: 20px; }
   .mobile-public-cover__search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: #fff; font-size: 13px; }
   .mobile-public-cover__search input::placeholder { color: rgba(255,255,255,.75); }
+
+  .mobile-menu-drawer__backdrop {
+    position: fixed;
+    z-index: 79;
+    inset: 0;
+    border: 0;
+    background: rgba(0,0,0,.32);
+  }
+
+  .mobile-menu-drawer {
+    position: fixed;
+    z-index: 80;
+    inset: 0 auto 0 0;
+    width: calc(100% - 28px);
+    max-width: 520px;
+    padding: 22px 25px 45px;
+    overflow-y: auto;
+    background: #fff;
+    color: #171717;
+    box-shadow: 12px 0 30px rgba(0,0,0,.16);
+  }
+
+  .mobile-menu-drawer__close {
+    width: 34px;
+    height: 34px;
+    margin: 0 0 25px -7px;
+    padding: 5px;
+    border: 0;
+    display: grid;
+    place-items: center;
+    background: transparent;
+    color: #171717;
+  }
+
+  .mobile-menu-drawer__close svg { width: 24px; height: 24px; stroke-width: 1.8; }
+
+  .mobile-menu-drawer__home,
+  .mobile-menu-drawer h2 {
+    display: block;
+    margin: 0;
+    font: 400 34px/1.1 var(--font-sans), Arial, sans-serif;
+    letter-spacing: -.035em;
+  }
+
+  .mobile-menu-drawer section { margin-top: 38px; }
+
+  .mobile-menu-drawer__aromas {
+    margin-top: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .mobile-menu-drawer__aromas a {
+    min-height: 22px;
+    display: grid;
+    grid-template-columns: 18px 1fr;
+    align-items: center;
+    color: #282421;
+    font-size: 18px;
+    text-align: right;
+  }
+
+  .aroma-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: block;
+  }
+
+  .aroma-dot--frutal { background: #bd5878; }
+  .aroma-dot--citrico { background: #d18a10; }
+  .aroma-dot--amaderado { background: #758653; }
+  .aroma-dot--dulce { background: #ae6128; }
+
+  .mobile-menu-drawer__links {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .mobile-menu-drawer__links a {
+    color: #282421;
+    font-size: 16px;
+    line-height: 1.25;
+  }
 
   .mobile-public-cover__copy {
     position: absolute;
