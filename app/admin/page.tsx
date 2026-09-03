@@ -1,12 +1,13 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
   LayoutDashboard,
   Package,
   MessageSquare,
+  Pencil,
   ShoppingBag,
   Settings,
   Trash2,
@@ -33,8 +34,8 @@ type Scent = {
   description: string | null;
   active: boolean;
   sort_order: number;
-  category_scents?: Array<{ categories: Array<{ name: string }> }>;
 };
+type AromaFamily = { slug: string; name: string; active: boolean; sort_order: number };
 type EditableVariant = {
   id: string;
   name: string;
@@ -59,6 +60,7 @@ type EditableProduct = {
   category_slug: string;
   description: string;
   scent_notes: string;
+  aroma_family: string;
   sku: string;
   price_clp: number;
   stock: number;
@@ -79,6 +81,7 @@ type ProductReview = {
 };
 type StoreLocation = { id:string; name:string; address:string; image_url:string; image_storage_path:string; show_in_hero:boolean; active:boolean; sort_order:number };
 type Faq={id:string;question:string;answer:string;active:boolean;sort_order:number};
+type SiteSettings={phone:string;whatsapp_number:string;whatsapp_enabled:boolean;instagram_url:string;facebook_url:string;tiktok_url:string;youtube_url:string;hero_desktop_url:string;hero_desktop_path:string;hero_mobile_url:string;hero_mobile_path:string};
 const seed: Product[] = [
   {
     id: 1,
@@ -133,13 +136,17 @@ export default function Admin() {
   const [tab, setTab] = useState("Bienvenida");
   const [products, setProducts] = useState(seed);
   const [scents, setScents] = useState<Scent[]>([]);
+  const [aromaFamilies, setAromaFamilies] = useState<AromaFamily[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [categoryEditorOpen, setCategoryEditorOpen] = useState(false);
   const [scentManagerOpen, setScentManagerOpen] = useState(false);
+  const [aromaManagerOpen, setAromaManagerOpen] = useState(false);
   const [editingScentId, setEditingScentId] = useState<string | null>(null);
+  const [editingAromaSlug, setEditingAromaSlug] = useState<string | null>(null);
+  const scentFormRef = useRef<HTMLFormElement>(null);
   const [categoryImage, setCategoryImage] = useState<File | null>(null);
   const [categoryImagePreview, setCategoryImagePreview] = useState("");
-  const [generatingCategory, setGeneratingCategory] = useState("");
   const [modal, setModal] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -157,7 +164,9 @@ export default function Admin() {
   const [editingLocationId, setEditingLocationId] = useState<string | null>(null);
   const [locationImage, setLocationImage] = useState<File | null>(null);
   const [locationPreview, setLocationPreview] = useState("");
-  const [siteSettings, setSiteSettings] = useState({ phone: "", whatsapp_number: "", whatsapp_enabled: true, instagram_url: "", facebook_url: "", tiktok_url: "", youtube_url: "" });
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>({ phone: "", whatsapp_number: "", whatsapp_enabled: true, instagram_url: "", facebook_url: "", tiktok_url: "", youtube_url: "", hero_desktop_url:"", hero_desktop_path:"", hero_mobile_url:"", hero_mobile_path:"" });
+  const [heroDesktopImage,setHeroDesktopImage]=useState<File|null>(null); const [heroDesktopPreview,setHeroDesktopPreview]=useState("");
+  const [heroMobileImage,setHeroMobileImage]=useState<File|null>(null); const [heroMobilePreview,setHeroMobilePreview]=useState("");
   const [faqs,setFaqs]=useState<Faq[]>([]); const [editingFaqId,setEditingFaqId]=useState<string|null>(null);
 
   useEffect(() => {
@@ -176,21 +185,21 @@ export default function Admin() {
     if (!session) return;
     supabase
       .from("scents")
-      .select("id,name,slug,notes,description,active,sort_order,category_scents(categories(name))")
+      .select("id,name,slug,notes,description,active,sort_order")
       .order("sort_order")
       .then(({ data }) => setScents(data ?? []));
+    supabase.from("aroma_families").select("slug,name,active,sort_order").order("sort_order").then(({ data }) => setAromaFamilies(data ?? []));
     supabase
       .from("categories")
       .select("id,name,slug,active,sort_order,image_url,image_storage_path")
       .order("sort_order")
       .then(({ data }) => {
         setCategories(data ?? []);
-        setGeneratingCategory((current) => current || data?.[0]?.slug || "");
       });
     supabase
       .from("products")
       .select(
-        "id,name,price_clp,stock,active,product_images(image_url,is_primary)",
+        "id,name,price_clp,stock,active,aroma_family,aroma_families(name),product_images(image_url,is_primary)",
       )
       .order("created_at", { ascending: false })
       .then(({ data }) => {
@@ -199,7 +208,7 @@ export default function Admin() {
           data.map((product: any) => ({
             id: product.id,
             name: product.name,
-            family: "Catálogo",
+            family: product.aroma_families?.name ?? "Sin aroma",
             price: product.price_clp,
             stock: product.stock,
             active: product.active,
@@ -218,15 +227,21 @@ export default function Admin() {
         else setReviews((data ?? []) as unknown as ProductReview[]);
       });
     supabase.from("store_locations").select("*").order("sort_order").then(({data}) => setLocations(data ?? []));
-    supabase.from("site_settings").select("phone,whatsapp_number,whatsapp_enabled,instagram_url,facebook_url,tiktok_url,youtube_url").eq("id",1).maybeSingle().then(({data})=>{if(data)setSiteSettings(data);});
+    supabase.from("site_settings").select("phone,whatsapp_number,whatsapp_enabled,instagram_url,facebook_url,tiktok_url,youtube_url,hero_desktop_url,hero_desktop_path,hero_mobile_url,hero_mobile_path").eq("id",1).maybeSingle().then(({data})=>{if(data){setSiteSettings(data);setHeroDesktopPreview(data.hero_desktop_url||"");setHeroMobilePreview(data.hero_mobile_url||"");}});
     supabase.from("faqs").select("*").order("sort_order").then(({data})=>setFaqs(data??[]));
   }, [session]);
 
+  const selectHeroImage=async(event:ChangeEvent<HTMLInputElement>,device:"desktop"|"mobile")=>{const file=event.target.files?.[0];if(!file)return;setCompressing(true);try{const compressed=await compressProductImage(file);const preview=URL.createObjectURL(compressed);if(device==="desktop"){if(heroDesktopPreview.startsWith("blob:"))URL.revokeObjectURL(heroDesktopPreview);setHeroDesktopImage(compressed);setHeroDesktopPreview(preview)}else{if(heroMobilePreview.startsWith("blob:"))URL.revokeObjectURL(heroMobilePreview);setHeroMobileImage(compressed);setHeroMobilePreview(preview)}}catch(error:unknown){setMessage(error instanceof Error?error.message:"No fue posible procesar la imagen.")}finally{setCompressing(false)}};
   const saveSiteSettings = async (event:FormEvent<HTMLFormElement>) => {
-    event.preventDefault();setSaving(true);setMessage("");const data=new FormData(event.currentTarget);
-    const values={phone:String(data.get("phone")||"").trim(),whatsapp_number:String(data.get("whatsapp_number")||"").replace(/\D/g,""),whatsapp_enabled:data.get("whatsapp_enabled")==="on",instagram_url:String(data.get("instagram_url")||"").trim(),facebook_url:String(data.get("facebook_url")||"").trim(),tiktok_url:String(data.get("tiktok_url")||"").trim(),youtube_url:String(data.get("youtube_url")||"").trim(),updated_at:new Date().toISOString()};
-    const {error}=await supabase.from("site_settings").upsert({id:1,...values});
-    if(error)setMessage(error.message);else{setSiteSettings(values);setMessage("Configuración de contacto guardada.");}setSaving(false);
+    event.preventDefault();setSaving(true);setMessage("");const data=new FormData(event.currentTarget);const uploaded:string[]=[];
+    try{let hero_desktop_url=siteSettings.hero_desktop_url,hero_desktop_path=siteSettings.hero_desktop_path,hero_mobile_url=siteSettings.hero_mobile_url,hero_mobile_path=siteSettings.hero_mobile_path;
+      if(heroDesktopImage){const path=`site/hero-desktop-${Date.now()}.webp`;const up=await supabase.storage.from("product-images").upload(path,heroDesktopImage,{cacheControl:"3600"});if(up.error)throw up.error;uploaded.push(path);hero_desktop_path=path;hero_desktop_url=supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl}
+      if(heroMobileImage){const path=`site/hero-mobile-${Date.now()}.webp`;const up=await supabase.storage.from("product-images").upload(path,heroMobileImage,{cacheControl:"3600"});if(up.error)throw up.error;uploaded.push(path);hero_mobile_path=path;hero_mobile_url=supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl}
+      const values={phone:String(data.get("phone")||"").trim(),whatsapp_number:String(data.get("whatsapp_number")||"").replace(/\D/g,""),whatsapp_enabled:data.get("whatsapp_enabled")==="on",instagram_url:String(data.get("instagram_url")||"").trim(),facebook_url:String(data.get("facebook_url")||"").trim(),tiktok_url:String(data.get("tiktok_url")||"").trim(),youtube_url:String(data.get("youtube_url")||"").trim(),hero_desktop_url,hero_desktop_path,hero_mobile_url,hero_mobile_path};
+      const {error}=await supabase.from("site_settings").upsert({id:1,...values,updated_at:new Date().toISOString()});if(error)throw error;
+      const oldPaths=[heroDesktopImage?siteSettings.hero_desktop_path:"",heroMobileImage?siteSettings.hero_mobile_path:""].filter(Boolean);if(oldPaths.length)await supabase.storage.from("product-images").remove(oldPaths);
+      setSiteSettings(values);setHeroDesktopImage(null);setHeroMobileImage(null);setHeroDesktopPreview(hero_desktop_url);setHeroMobilePreview(hero_mobile_url);setMessage("Configuración y fotografías del hero guardadas.");
+    }catch(error:unknown){if(uploaded.length)await supabase.storage.from("product-images").remove(uploaded);setMessage(error instanceof Error?error.message:"No fue posible guardar la configuración.")}finally{setSaving(false)};
   };
   const saveFaq=async(event:FormEvent<HTMLFormElement>)=>{event.preventDefault();setSaving(true);const data=new FormData(event.currentTarget);const payload={question:String(data.get("question")).trim(),answer:String(data.get("answer")).trim(),sort_order:Number(data.get("sort_order")||0),active:data.get("active")==="on",updated_at:new Date().toISOString()};const result=editingFaqId?await supabase.from("faqs").update(payload).eq("id",editingFaqId):await supabase.from("faqs").insert(payload);if(result.error)setMessage(result.error.message);else{const refreshed=await supabase.from("faqs").select("*").order("sort_order");setFaqs(refreshed.data??[]);setEditingFaqId(null);(event.currentTarget as HTMLFormElement).reset();setMessage("Pregunta guardada correctamente.");}setSaving(false)};
   const deleteFaq=async(id:string)=>{if(!window.confirm("¿Eliminar esta pregunta frecuente?"))return;setSaving(true);const {error}=await supabase.from("faqs").delete().eq("id",id);if(error)setMessage(error.message);else{setFaqs(items=>items.filter(x=>x.id!==id));setMessage("Pregunta eliminada.");}setSaving(false)};
@@ -413,6 +428,7 @@ export default function Admin() {
         .order("sort_order");
       setCategories(refreshed ?? []);
       setEditingCategoryId(null);
+      setCategoryEditorOpen(false);
       setCategoryImage(null);
       if (categoryImagePreview.startsWith("blob:")) URL.revokeObjectURL(categoryImagePreview);
       setCategoryImagePreview("");
@@ -420,16 +436,34 @@ export default function Admin() {
       setMessage("Categoría guardada correctamente.");
     } catch (error: unknown) {
       if (uploadedPath) await supabase.storage.from("product-images").remove([uploadedPath]);
-      setMessage(error instanceof Error ? error.message : "No fue posible guardar la categoría.");
+      setMessage(error instanceof Error ? error.message : typeof error === "object" && error && "message" in error ? String(error.message) : "No fue posible guardar la categoría.");
     } finally {
       setSaving(false);
     }
   };
 
+  const deleteCategory = async (category: Category) => {
+    if (!window.confirm(`¿Eliminar la categoría “${category.name}”?`)) return;
+    setSaving(true);
+    setMessage("");
+    try {
+      const { count, error: usageError } = await supabase.from("products").select("id", { count: "exact", head: true }).eq("category_id", category.id);
+      if (usageError) throw usageError;
+      if (count) throw new Error("No se puede eliminar esta categoría porque contiene productos.");
+      const { error } = await supabase.from("categories").delete().eq("id", category.id);
+      if (error) throw error;
+      if (category.image_storage_path) await supabase.storage.from("product-images").remove([category.image_storage_path]);
+      setCategories(items => items.filter(item => item.id !== category.id));
+      setMessage("Categoría eliminada correctamente.");
+    } catch (error: unknown) {
+      setMessage(error instanceof Error ? error.message : typeof error === "object" && error && "message" in error ? String(error.message) : "No fue posible eliminar la categoría.");
+    } finally { setSaving(false); }
+  };
+
   const refreshScents = async () => {
     const { data, error } = await supabase
       .from("scents")
-      .select("id,name,slug,notes,description,active,sort_order,category_scents(categories(name))")
+      .select("id,name,slug,notes,description,active,sort_order")
       .order("sort_order");
     if (error) throw error;
     setScents(data ?? []);
@@ -469,6 +503,49 @@ export default function Admin() {
     }
   };
 
+  const openScentEdit = (scentId: string) => {
+    setEditingScentId(scentId);
+    window.requestAnimationFrame(() => scentFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+
+  const refreshAromaFamilies = async () => {
+    const { data, error } = await supabase.from("aroma_families").select("slug,name,active,sort_order").order("sort_order");
+    if (error) throw error;
+    setAromaFamilies(data ?? []);
+  };
+
+  const saveAromaFamily = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); setSaving(true); setMessage("");
+    const form = event.currentTarget; const data = new FormData(form);
+    const name = String(data.get("name") || "").trim(); const slug = slugify(name);
+    try {
+      if (!slug) throw new Error("Escribe un nombre válido para el aroma.");
+      const payload = { slug, name, active: data.get("active") === "on", sort_order: Number(data.get("sort_order") || 0), updated_at: new Date().toISOString() };
+      const result = editingAromaSlug
+        ? await supabase.from("aroma_families").update(payload).eq("slug", editingAromaSlug)
+        : await supabase.from("aroma_families").insert(payload);
+      if (result.error) throw result.error;
+      await refreshAromaFamilies(); setEditingAromaSlug(null); form.reset();
+      setMessage(editingAromaSlug ? "Aroma actualizado correctamente." : "Aroma creado correctamente.");
+    } catch (error: unknown) { setMessage(error instanceof Error ? error.message : "No fue posible guardar el aroma."); }
+    finally { setSaving(false); }
+  };
+
+  const deleteAromaFamily = async (family: AromaFamily) => {
+    if (!window.confirm(`¿Eliminar el aroma “${family.name}”?`)) return;
+    setSaving(true); setMessage("");
+    try {
+      const { count, error: usageError } = await supabase.from("products").select("id", { count: "exact", head: true }).eq("aroma_family", family.slug);
+      if (usageError) throw usageError;
+      if (count) throw new Error("No se puede eliminar porque está asociado a uno o más productos.");
+      const { error } = await supabase.from("aroma_families").delete().eq("slug", family.slug);
+      if (error) throw error;
+      await refreshAromaFamilies(); if (editingAromaSlug === family.slug) setEditingAromaSlug(null);
+      setMessage("Aroma eliminado correctamente.");
+    } catch (error: unknown) { setMessage(error instanceof Error ? error.message : "No fue posible eliminar el aroma."); }
+    finally { setSaving(false); }
+  };
+
   const deleteScent = async (scent: Scent) => {
     if (!window.confirm(`¿Eliminar la fragancia “${scent.name}”?`)) return;
     setSaving(true);
@@ -480,8 +557,6 @@ export default function Admin() {
         .eq("scent_id", scent.id);
       if (usageError) throw usageError;
       if (count) throw new Error("No se puede eliminar porque está asociada a uno o más productos.");
-      const { error: relationError } = await supabase.from("category_scents").delete().eq("scent_id", scent.id);
-      if (relationError) throw relationError;
       const { error } = await supabase.from("scents").delete().eq("id", scent.id);
       if (error) throw error;
       await refreshScents();
@@ -494,67 +569,13 @@ export default function Admin() {
     }
   };
 
-  const generateMissingProducts = async () => {
-    setSaving(true);
-    setMessage("");
-    try {
-      const category = categories.find((item) => item.slug === generatingCategory);
-      if (!category) throw new Error("Selecciona una categoría válida.");
-      const [{ data: availability, error: availabilityError }, { data: formats, error: formatsError }, { data: existing, error: existingError }] = await Promise.all([
-        supabase.from("category_scents").select("scent_id,scents(id,name,slug,notes,active)").eq("category_id", category.id).eq("active", true),
-        supabase.from("catalog_formats").select("prefix,variant_code,variant_name,size_value,size_unit,price_clp,stock,is_default,sort_order").eq("category_slug", category.slug).order("sort_order"),
-        supabase.from("products").select("id,product_variants(scent_id)").eq("category_id", category.id),
-      ]);
-      if (availabilityError || formatsError || existingError) throw availabilityError || formatsError || existingError;
-      if (!formats?.length) throw new Error("La categoría no tiene formatos configurados.");
-      const existingScentIds = new Set((existing ?? []).flatMap((item: any) => (item.product_variants ?? []).map((variant: any) => variant.scent_id)));
-      const missing = (availability ?? []).map((item: any) => item.scents).filter((scent: any) => scent?.active && !existingScentIds.has(scent.id));
-      for (const scent of missing) {
-        const productSku = `AS-${formats[0].prefix}-${scent.slug.replace(/[^a-z0-9]/g, "").toUpperCase()}`;
-        const { data: product, error: productError } = await supabase.from("products").insert({
-          category_id: category.id,
-          name: `${category.name} ${scent.name}`,
-          slug: `${category.slug}-${scent.slug}`,
-          description: `${category.name} con fragancia ${scent.name}.`,
-          scent_notes: scent.notes,
-          sku: productSku,
-          price_clp: Math.min(...formats.map((format) => format.price_clp)),
-          stock: formats.reduce((sum, format) => sum + format.stock, 0),
-          active: true,
-          featured: false,
-        }).select("id").single();
-        if (productError) throw productError;
-        const { error: variantError } = await supabase.from("product_variants").insert(formats.map((format) => ({
-          product_id: product.id,
-          scent_id: scent.id,
-          name: format.variant_name,
-          sku: `${productSku}-${format.variant_code}`,
-          size_value: format.size_value,
-          size_unit: format.size_unit,
-          price_clp: format.price_clp,
-          stock: format.stock,
-          low_stock_threshold: 5,
-          active: true,
-          is_default: format.is_default,
-          sort_order: format.sort_order,
-        })));
-        if (variantError) throw variantError;
-      }
-      setMessage(missing.length ? `Se crearon ${missing.length} productos faltantes para ${category.name}.` : `${category.name} ya contiene todas las fragancias disponibles.`);
-    } catch (error: unknown) {
-      setMessage(error instanceof Error ? error.message : "No fue posible generar los productos.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const openEdit = async (productId: string | number) => {
     setLoadingEdit(true);
     setMessage("");
     const { data, error } = await supabase
       .from("products")
       .select(
-        "id,name,category_id,description,scent_notes,sku,price_clp,stock,active,featured,categories(slug),product_variants(id,name,sku,price_clp,stock,size_value,size_unit,scent_id,active,is_default,sort_order),product_images(id,image_url,storage_path,is_primary,sort_order)",
+        "id,name,category_id,description,scent_notes,aroma_family,sku,price_clp,stock,active,featured,categories(slug),product_variants(id,name,sku,price_clp,stock,size_value,size_unit,scent_id,active,is_default,sort_order),product_images(id,image_url,storage_path,is_primary,sort_order)",
       )
       .eq("id", productId)
       .single();
@@ -571,6 +592,7 @@ export default function Admin() {
       category_slug: item.categories?.slug ?? "home-spray",
       description: item.description ?? "",
       scent_notes: item.scent_notes ?? "",
+      aroma_family: item.aroma_family ?? "",
       sku: item.sku ?? "",
       price_clp: item.price_clp ?? 0,
       stock: item.stock ?? 0,
@@ -606,6 +628,10 @@ export default function Admin() {
       variants[index] = { ...variants[index], [field]: value };
       return { ...current, variants };
     });
+  };
+
+  const changeProductScent = (scentId: string) => {
+    setEditing((current) => current ? { ...current, variants: current.variants.map((variant) => ({ ...variant, scent_id: scentId })) } : current);
   };
 
   const removeCurrentImage = async (image: EditableImage) => {
@@ -724,6 +750,11 @@ export default function Admin() {
         0,
       );
       const defaultVariant = editing.variants[0];
+      const scentId = defaultVariant?.scent_id;
+      const selectedScent = scents.find((scent) => scent.id === scentId);
+      const aromaFamily = String(data.get("aroma_family") || "");
+      if (!selectedScent) throw new Error("Selecciona una fragancia válida para el producto.");
+      if (!aromaFamilies.some((family) => family.slug === aromaFamily)) throw new Error("Selecciona un aroma válido.");
       const { error: productError } = await supabase
         .from("products")
         .update({
@@ -731,7 +762,8 @@ export default function Admin() {
           name: updatedName,
           slug: updatedSlug,
           description: String(data.get("description") || ""),
-          scent_notes: String(data.get("notes") || ""),
+          scent_notes: selectedScent.notes ?? "",
+          aroma_family: aromaFamily,
           sku: updatedSku,
           price_clp: defaultVariant?.price_clp ?? editing.price_clp,
           stock: totalStock,
@@ -813,7 +845,7 @@ export default function Admin() {
             ? {
                 ...item,
                 name: String(data.get("name")),
-                family: String(data.get("category")),
+                family: aromaFamilies.find((family) => family.slug === aromaFamily)?.name ?? aromaFamily,
                 price: defaultVariant?.price_clp ?? editing.price_clp,
                 stock: totalStock,
                 active: data.get("active") === "on",
@@ -858,6 +890,7 @@ export default function Admin() {
     const price = Number(data.get("price"));
     const stock = Number(data.get("stock"));
     const scentId = String(data.get("scent_id"));
+    const aromaFamily = String(data.get("aroma_family") || "");
     try {
       if (!productSlug || !sku) {
         throw new Error("El nombre debe incluir al menos una letra o un número.");
@@ -869,6 +902,7 @@ export default function Admin() {
         .single();
       const scent = scents.find((item) => item.id === scentId);
       if (!category || !scent) throw new Error("Selecciona una categoría y fragancia válidas.");
+      if (!aromaFamilies.some((family) => family.slug === aromaFamily && family.active)) throw new Error("Selecciona un aroma activo válido.");
       const { data: duplicate } = await supabase
         .from("product_variants")
         .select("id,products!inner(category_id)")
@@ -883,7 +917,8 @@ export default function Admin() {
           name,
           slug: productSlug,
           description: String(data.get("description") || ""),
-          scent_notes: String(data.get("notes") || ""),
+          scent_notes: scent.notes ?? "",
+          aroma_family: aromaFamily,
           sku,
           price_clp: price,
           stock,
@@ -950,7 +985,7 @@ export default function Admin() {
         {
           id: product.id,
           name,
-          family: String(data.get("category")),
+          family: aromaFamilies.find((family) => family.slug === aromaFamily)?.name ?? aromaFamily,
           price,
           stock,
           active: true,
@@ -1068,9 +1103,7 @@ export default function Admin() {
                 <h2>Catálogo de productos</h2>
               </div>
               <div className="admin-header-actions">
-                <select value={generatingCategory} onChange={(event) => setGeneratingCategory(event.target.value)}>
-                  {categories.map((category) => <option key={category.id} value={category.slug}>{category.name}</option>)}
-                </select>
+                <button onClick={() => setAromaManagerOpen(true)}>GESTIONAR AROMAS</button>
                 <button onClick={() => setScentManagerOpen(true)}>GESTIONAR FRAGANCIAS</button>
                 <button onClick={() => { setPrimaryImageIndex(0); setModal(true); }}>+ NUEVO PRODUCTO</button>
               </div>
@@ -1154,18 +1187,8 @@ export default function Admin() {
         )}
         {tab === "Categorías" && (
           <section className="admin-table">
-            <form key={editingCategoryId ?? "new-category"} className="category-management-form" onSubmit={saveCategory}>
-              <div className="category-management-fields"><label>Nombre de la categoría<input name="name" required defaultValue={categories.find((item) => item.id === editingCategoryId)?.name ?? ""} placeholder="Ej. Home Spray"/></label><label>Orden<input name="sort_order" type="number" min="0" defaultValue={categories.find((item) => item.id === editingCategoryId)?.sort_order ?? categories.length + 1}/></label></div>
-              <label className="image-upload">
-                Foto de la categoría
-                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={selectCategoryImage}/>
-                <span>{compressing ? "Comprimiendo imagen…" : categoryImagePreview ? "Cambiar fotografía" : "Seleccionar una fotografía"}</span>
-              </label>
-              {categoryImagePreview && <div className="category-management-preview"><Image src={categoryImagePreview} alt="Vista previa de categoría" fill unoptimized/></div>}
-              <label className="featured-check"><input name="active" type="checkbox" defaultChecked={categories.find((item) => item.id === editingCategoryId)?.active ?? true}/> Mostrar categoría en el sitio</label>
-              <div className="category-management-actions">{editingCategoryId && <button type="button" onClick={()=>{setEditingCategoryId(null);setCategoryImage(null);setCategoryImagePreview("")}}>CANCELAR</button>}<button disabled={saving || compressing}>{editingCategoryId ? "GUARDAR" : "CREAR CATEGORÍA"}</button></div>
-            </form>
-            <div><table><thead><tr><th>Imagen</th><th>Categoría</th><th>Slug</th><th>Orden</th><th>Estado</th><th>Acción</th></tr></thead><tbody>{categories.map((category) => <tr key={category.id}><td>{category.image_url ? <Image className="admin-category-image" src={category.image_url} alt={category.name} width={54} height={54} unoptimized/> : "Sin imagen"}</td><td><strong>{category.name}</strong></td><td>{category.slug}</td><td>{category.sort_order}</td><td><span className={category.active ? "ok" : "bad"}>{category.active ? "Activa" : "Inactiva"}</span></td><td><button className="admin-edit-button" onClick={() => { if (categoryImagePreview.startsWith("blob:")) URL.revokeObjectURL(categoryImagePreview); setCategoryImage(null); setCategoryImagePreview(category.image_url ?? ""); setEditingCategoryId(category.id); }}>EDITAR</button></td></tr>)}</tbody></table></div>
+            <header><div><p>CATÁLOGO</p><h2>Todas las categorías</h2></div><button onClick={()=>{setEditingCategoryId(null);setCategoryImage(null);setCategoryImagePreview("");setCategoryEditorOpen(true)}}>+ AGREGAR CATEGORÍA</button></header>
+            <div><table><thead><tr><th>Imagen</th><th>Categoría</th><th>Orden</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{categories.map((category) => <tr key={category.id}><td>{category.image_url ? <Image className="admin-category-image" src={category.image_url} alt={category.name} width={54} height={54} unoptimized/> : "Sin imagen"}</td><td className="admin-category-name"><strong>{category.name}</strong><small>{category.slug}</small></td><td>{category.sort_order}</td><td><span className={category.active ? "ok" : "bad"}>{category.active ? "Activa" : "Inactiva"}</span></td><td><div className="category-icon-actions"><button type="button" aria-label={`Editar ${category.name}`} title="Editar" onClick={() => { if (categoryImagePreview.startsWith("blob:")) URL.revokeObjectURL(categoryImagePreview); setCategoryImage(null); setCategoryImagePreview(category.image_url ?? ""); setEditingCategoryId(category.id); setCategoryEditorOpen(true); }}><Pencil/></button><button type="button" aria-label={`Eliminar ${category.name}`} title="Eliminar" onClick={()=>deleteCategory(category)} disabled={saving}><Trash2/></button></div></td></tr>)}{!categories.length&&<tr><td colSpan={5} className="admin-review-empty">Aún no hay categorías. Usa “Agregar categoría” para crear la primera.</td></tr>}</tbody></table></div>
           </section>
         )}
         {tab === "Comentarios" && (
@@ -1240,15 +1263,11 @@ export default function Admin() {
           </section>
         )}
         {tab === "Configuración" && <><section className="admin-table"><header><div><p>CONTACTO</p><h2>Teléfono y WhatsApp</h2></div></header>
-          <form className="category-form" onSubmit={saveSiteSettings}>
-            <label>Teléfono visible<input name="phone" required value={siteSettings.phone} onChange={e=>setSiteSettings({...siteSettings,phone:e.target.value})} placeholder="+56 9 1234 5678"/></label>
-            <label>Número de WhatsApp<input name="whatsapp_number" required value={siteSettings.whatsapp_number} onChange={e=>setSiteSettings({...siteSettings,whatsapp_number:e.target.value})} placeholder="56912345678"/></label>
-            <label className="featured-check"><input name="whatsapp_enabled" type="checkbox" checked={siteSettings.whatsapp_enabled} onChange={e=>setSiteSettings({...siteSettings,whatsapp_enabled:e.target.checked})}/> Mostrar botón WhatsApp</label>
-            <label>Instagram<input name="instagram_url" type="url" value={siteSettings.instagram_url} onChange={e=>setSiteSettings({...siteSettings,instagram_url:e.target.value})} placeholder="https://instagram.com/..."/></label>
-            <label>Facebook<input name="facebook_url" type="url" value={siteSettings.facebook_url} onChange={e=>setSiteSettings({...siteSettings,facebook_url:e.target.value})} placeholder="https://facebook.com/..."/></label>
-            <label>TikTok<input name="tiktok_url" type="url" value={siteSettings.tiktok_url} onChange={e=>setSiteSettings({...siteSettings,tiktok_url:e.target.value})} placeholder="https://tiktok.com/@..."/></label>
-            <label>YouTube<input name="youtube_url" type="url" value={siteSettings.youtube_url} onChange={e=>setSiteSettings({...siteSettings,youtube_url:e.target.value})} placeholder="https://youtube.com/@..."/></label>
-            <button disabled={saving}>GUARDAR CONTACTO</button>
+          <form className="site-settings-form" onSubmit={saveSiteSettings}>
+            <div className="site-settings-form__hero"><div><span>PORTADA DEL SITIO</span><h3>Fotografías del hero</h3><p>Sube una imagen horizontal para escritorio y otra vertical para celular. Se comprimen automáticamente antes de guardarse.</p></div><div className="hero-image-fields"><label><b>ESCRITORIO</b><span>Recomendado 1920 × 780 px</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={event=>selectHeroImage(event,"desktop")}/><i>{compressing?"Procesando…":"Reemplazar fotografía"}</i>{heroDesktopPreview&&<figure><Image src={heroDesktopPreview} alt="Vista previa hero escritorio" fill unoptimized/></figure>}</label><label><b>CELULAR</b><span>Recomendado 750 × 1100 px</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={event=>selectHeroImage(event,"mobile")}/><i>{compressing?"Procesando…":"Reemplazar fotografía"}</i>{heroMobilePreview&&<figure className="mobile"><Image src={heroMobilePreview} alt="Vista previa hero celular" fill unoptimized/></figure>}</label></div></div>
+            <div className="site-settings-form__group"><h3>Datos de contacto</h3><div><label>Teléfono visible<input name="phone" required value={siteSettings.phone} onChange={e=>setSiteSettings({...siteSettings,phone:e.target.value})} placeholder="+56 9 1234 5678"/></label><label>Número de WhatsApp<input name="whatsapp_number" required value={siteSettings.whatsapp_number} onChange={e=>setSiteSettings({...siteSettings,whatsapp_number:e.target.value})} placeholder="56912345678"/></label></div><label className="featured-check"><input name="whatsapp_enabled" type="checkbox" checked={siteSettings.whatsapp_enabled} onChange={e=>setSiteSettings({...siteSettings,whatsapp_enabled:e.target.checked})}/> Mostrar botón de WhatsApp en el sitio</label></div>
+            <div className="site-settings-form__group"><h3>Redes sociales</h3><div><label>Instagram<input name="instagram_url" type="url" value={siteSettings.instagram_url} onChange={e=>setSiteSettings({...siteSettings,instagram_url:e.target.value})} placeholder="https://instagram.com/..."/></label><label>Facebook<input name="facebook_url" type="url" value={siteSettings.facebook_url} onChange={e=>setSiteSettings({...siteSettings,facebook_url:e.target.value})} placeholder="https://facebook.com/..."/></label><label>TikTok<input name="tiktok_url" type="url" value={siteSettings.tiktok_url} onChange={e=>setSiteSettings({...siteSettings,tiktok_url:e.target.value})} placeholder="https://tiktok.com/@..."/></label><label>YouTube<input name="youtube_url" type="url" value={siteSettings.youtube_url} onChange={e=>setSiteSettings({...siteSettings,youtube_url:e.target.value})} placeholder="https://youtube.com/@..."/></label></div></div>
+            <div className="site-settings-form__actions"><button disabled={saving}>{saving?"GUARDANDO…":"GUARDAR CONFIGURACIÓN"}</button></div>
           </form>
         </section><section className="admin-table"><header><div><p>CONTENIDO</p><h2>Preguntas frecuentes</h2></div></header>
           <form key={editingFaqId??"new-faq"} className="category-form" onSubmit={saveFaq}>
@@ -1273,6 +1292,8 @@ export default function Admin() {
           <div><table><thead><tr><th>Foto</th><th>Sucursal</th><th>Dirección</th><th>Hero</th><th>Acción</th></tr></thead><tbody>{locations.map(location=><tr key={location.id}><td><Image className="admin-category-image" src={location.image_url} alt={location.name} width={54} height={54} unoptimized/></td><td><strong>{location.name}</strong></td><td>{location.address}</td><td>{location.show_in_hero?"Sí":"No"}</td><td><button className="admin-edit-button" onClick={()=>{setEditingLocationId(location.id);setLocationImage(null);setLocationPreview(location.image_url)}}>EDITAR</button></td></tr>)}</tbody></table></div>
         </section></>}
       </section>
+      {categoryEditorOpen&&<div className="modal-backdrop"><form key={editingCategoryId??"new-category"} className="category-management-form category-management-modal" onSubmit={saveCategory}><header><div><p>CATEGORÍAS</p><h2>{editingCategoryId?"Editar categoría":"Nueva categoría"}</h2></div><button type="button" aria-label="Cerrar" onClick={()=>{setCategoryEditorOpen(false);setEditingCategoryId(null);setCategoryImage(null);setCategoryImagePreview("")}}>×</button></header><div className="category-management-fields"><label>Nombre<input name="name" required defaultValue={categories.find(item=>item.id===editingCategoryId)?.name??""} placeholder="Ej. Home Spray"/></label><label>Orden<input name="sort_order" type="number" min="0" defaultValue={categories.find(item=>item.id===editingCategoryId)?.sort_order??categories.length+1}/></label></div><label className="image-upload">Fotografía<input type="file" accept="image/jpeg,image/png,image/webp" onChange={selectCategoryImage}/><span>{compressing?"Comprimiendo…":categoryImagePreview?"Cambiar fotografía":"Seleccionar fotografía"}</span></label>{categoryImagePreview&&<div className="category-management-preview"><Image src={categoryImagePreview} alt="Vista previa" fill unoptimized/></div>}<label className="featured-check"><input name="active" type="checkbox" defaultChecked={categories.find(item=>item.id===editingCategoryId)?.active??true}/> Mostrar en el sitio</label><div className="category-management-actions"><button type="button" onClick={()=>setCategoryEditorOpen(false)}>CANCELAR</button><button disabled={saving||compressing}>{saving?"GUARDANDO…":editingCategoryId?"GUARDAR":"CREAR CATEGORÍA"}</button></div></form></div>}
+      {aromaManagerOpen && <div className="modal-backdrop"><section className="scent-manager" role="dialog" aria-modal="true" aria-labelledby="aroma-manager-title"><header><div><p>PRODUCTOS</p><h2 id="aroma-manager-title">Aromas</h2></div><button type="button" aria-label="Cerrar" onClick={()=>{setEditingAromaSlug(null);setAromaManagerOpen(false)}}>×</button></header><form key={editingAromaSlug??"new-aroma"} className="scent-form" onSubmit={saveAromaFamily}><div><label>Nombre<input name="name" required defaultValue={aromaFamilies.find(item=>item.slug===editingAromaSlug)?.name??""} placeholder="Ej. Frutal"/></label><label>Orden<input name="sort_order" type="number" min="0" defaultValue={aromaFamilies.find(item=>item.slug===editingAromaSlug)?.sort_order??aromaFamilies.length+1}/></label></div><label className="featured-check"><input name="active" type="checkbox" defaultChecked={aromaFamilies.find(item=>item.slug===editingAromaSlug)?.active??true}/> Aroma activo</label><div className="scent-form-actions">{editingAromaSlug&&<button type="button" onClick={()=>setEditingAromaSlug(null)}>CANCELAR</button>}<button type="submit" disabled={saving}>{editingAromaSlug?"GUARDAR CAMBIOS":"+ CREAR AROMA"}</button></div></form><div className="scent-list"><table><thead><tr><th>Aroma</th><th>Slug</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{aromaFamilies.map(family=><tr key={family.slug}><td><strong>{family.name}</strong></td><td>{family.slug}</td><td><span className={family.active?"ok":"bad"}>{family.active?"Activo":"Inactivo"}</span></td><td><div className="admin-row-actions"><button type="button" className="admin-edit-button" onClick={()=>setEditingAromaSlug(family.slug)}>EDITAR</button><button type="button" className="admin-delete-button" onClick={()=>deleteAromaFamily(family)} disabled={saving}><Trash2/> ELIMINAR</button></div></td></tr>)}{!aromaFamilies.length&&<tr><td colSpan={4} className="admin-review-empty">No hay aromas creados.</td></tr>}</tbody></table></div></section></div>}
       {scentManagerOpen && (
         <div className="modal-backdrop">
           <section className="scent-manager" role="dialog" aria-modal="true" aria-labelledby="scent-manager-title">
@@ -1280,7 +1301,7 @@ export default function Admin() {
               <div><p>CATÁLOGO</p><h2 id="scent-manager-title">Fragancias</h2></div>
               <button type="button" aria-label="Cerrar" onClick={() => { setEditingScentId(null); setScentManagerOpen(false); }}>×</button>
             </header>
-            <form key={editingScentId ?? "new-scent"} className="scent-form" onSubmit={saveScent}>
+            <form ref={scentFormRef} key={editingScentId ?? "new-scent"} className="scent-form" onSubmit={saveScent}>
               <div>
                 <label>Nombre<input name="name" required defaultValue={scents.find((item) => item.id === editingScentId)?.name ?? ""}/></label>
                 <label>Slug<input name="slug" defaultValue={scents.find((item) => item.id === editingScentId)?.slug ?? ""} placeholder="Se genera automáticamente"/></label>
@@ -1296,13 +1317,6 @@ export default function Admin() {
                 <button type="submit" disabled={saving}>{editingScentId ? "GUARDAR CAMBIOS" : "+ CREAR FRAGANCIA"}</button>
               </div>
             </form>
-            <div className="scent-generate-row">
-              <select value={generatingCategory} onChange={(event) => setGeneratingCategory(event.target.value)}>
-                <option value="">Selecciona una categoría</option>
-                {categories.map((category) => <option key={category.id} value={category.slug}>{category.name}</option>)}
-              </select>
-              <button type="button" onClick={generateMissingProducts} disabled={saving || !generatingCategory}>GENERAR PRODUCTOS PARA FRAGANCIAS FALTANTES</button>
-            </div>
             <div className="scent-list">
               <table>
                 <thead><tr><th>Fragancia</th><th>Notas</th><th>Estado</th><th>Acciones</th></tr></thead>
@@ -1311,7 +1325,7 @@ export default function Admin() {
                     <td><strong>{scent.name}</strong><small>{scent.slug}</small></td>
                     <td>{scent.notes || "Sin notas"}</td>
                     <td><span className={scent.active ? "ok" : "bad"}>{scent.active ? "Activa" : "Inactiva"}</span></td>
-                    <td><div className="admin-row-actions"><button type="button" className="admin-edit-button" onClick={() => setEditingScentId(scent.id)}>EDITAR</button><button type="button" className="admin-delete-button" onClick={() => deleteScent(scent)} disabled={saving}><Trash2/> ELIMINAR</button></div></td>
+                    <td><div className="admin-row-actions"><button type="button" className="admin-edit-button" onClick={() => openScentEdit(scent.id)}>EDITAR</button><button type="button" className="admin-delete-button" onClick={() => deleteScent(scent)} disabled={saving}><Trash2/> ELIMINAR</button></div></td>
                   </tr>)}
                   {!scents.length && <tr><td colSpan={4} className="admin-review-empty">No hay fragancias creadas.</td></tr>}
                 </tbody>
@@ -1360,21 +1374,26 @@ export default function Admin() {
               Descripción
               <textarea name="description" rows={3} />
             </label>
-            <label>
-              Notas aromáticas
-              <input name="notes" placeholder="Mango, durazno y vainilla" />
-            </label>
-            <label>
-              Aroma
-              <select name="scent_id" required>
-                <option value="">Selecciona un aroma</option>
-                {scents.map((scent) => (
+            <div>
+              <label>
+                Aroma
+                <select name="aroma_family" required defaultValue="">
+                  <option value="" disabled>Selecciona una familia</option>
+                  {aromaFamilies.filter((family) => family.active).map((family) => <option key={family.slug} value={family.slug}>{family.name}</option>)}
+                </select>
+              </label>
+              <label>
+                Fragancia
+                <select name="scent_id" required defaultValue="">
+                <option value="" disabled>Selecciona una fragancia</option>
+                {scents.filter((scent) => scent.active).map((scent) => (
                   <option key={scent.id} value={scent.id}>
                     {scent.name}
                   </option>
                 ))}
-              </select>
-            </label>
+                </select>
+              </label>
+            </div>
             <div>
               <label>
                 Precio
@@ -1510,10 +1529,22 @@ export default function Admin() {
               Descripción
               <textarea name="description" rows={3} defaultValue={editing.description} />
             </label>
-            <label>
-              Notas aromáticas
-              <input name="notes" defaultValue={editing.scent_notes} />
-            </label>
+            <div>
+              <label>
+                Aroma
+                <select name="aroma_family" required value={editing.aroma_family} onChange={(event) => setEditing({ ...editing, aroma_family: event.target.value })}>
+                  <option value="" disabled>Selecciona una familia</option>
+                  {aromaFamilies.map((family) => <option key={family.slug} value={family.slug}>{family.name}{family.active ? "" : " (inactivo)"}</option>)}
+                </select>
+              </label>
+              <label>
+                Fragancia
+                <select required value={editing.variants[0]?.scent_id ?? ""} onChange={(event) => changeProductScent(event.target.value)}>
+                  <option value="" disabled>Selecciona una fragancia</option>
+                  {scents.map((scent) => <option key={scent.id} value={scent.id}>{scent.name}{scent.active ? "" : " (inactiva)"}</option>)}
+                </select>
+              </label>
+            </div>
 
             <section className="edit-variants">
               <h3>Presentaciones, precios y stock</h3>
@@ -1558,22 +1589,6 @@ export default function Admin() {
                           changeVariant(index, "stock", Number(event.target.value))
                         }
                       />
-                    </label>
-                    <label>
-                      Aroma
-                      <select
-                        value={variant.scent_id}
-                        onChange={(event) =>
-                          changeVariant(index, "scent_id", event.target.value)
-                        }
-                      >
-                        <option value="">Sin aroma</option>
-                        {scents.map((scent) => (
-                          <option key={scent.id} value={scent.id}>
-                            {scent.name}
-                          </option>
-                        ))}
-                      </select>
                     </label>
                   </div>
                   <label className="featured-check">

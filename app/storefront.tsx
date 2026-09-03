@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, Search as SearchIcon, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import SiteHeader from "./site-header";
 import SiteFooter from "./site-footer";
 import { supabase } from "../lib/supabase-browser";
@@ -17,21 +19,24 @@ export default function Storefront() {
   const [products, setProducts] = useState<Product[]>([]);
   const [homeCategories, setHomeCategories] = useState<Array<{ id: string; name: string; slug: string; image_url: string | null }>>([]);
   const [locations, setLocations] = useState<Array<{id:string;name:string;address:string;image_url:string;show_in_hero:boolean}>>([]);
+  const [heroImages,setHeroImages]=useState({desktop:"",mobile:""});
   const [faqs,setFaqs]=useState<Array<{id:string;question:string;answer:string}>>([]);
   const [cart, setCart] = useState<string[]>([]);
   const [drawer, setDrawer] = useState(false);
   const [search, setSearch] = useState(false);
   const [query, setQuery] = useState("");
   const [toast, setToast] = useState("");
+  const categoryCarouselRef = useRef<HTMLDivElement>(null);
+  const moveCategories = (direction: number) => categoryCarouselRef.current?.scrollBy({ left: direction * categoryCarouselRef.current.clientWidth * .82, behavior: "smooth" });
   useEffect(() => {
     supabase.from("categories").select("id,name,slug,image_url").eq("active", true).order("sort_order").then(({ data }) => setHomeCategories(data ?? []));
     supabase.from("store_locations").select("id,name,address,image_url,show_in_hero").eq("active",true).order("sort_order").then(({data})=>setLocations(data??[]));
+    supabase.from("site_settings").select("hero_desktop_url,hero_mobile_url").eq("id",1).maybeSingle().then(({data})=>{if(data)setHeroImages({desktop:data.hero_desktop_url||"",mobile:data.hero_mobile_url||""})});
     supabase.from("faqs").select("id,question,answer").eq("active",true).order("sort_order").then(({data})=>setFaqs(data??[]));
     supabase
       .from("products")
       .select("id,slug,name,scent_notes,price_clp,stock,categories(name,slug),product_variants(id,size_value,size_unit,is_default,sort_order,active),product_images(variant_id,image_url,is_primary,sort_order)")
       .eq("active", true)
-      .eq("featured", true)
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (error) {
@@ -63,12 +68,31 @@ export default function Storefront() {
   }, []);
   const total = cart.reduce((sum, id) => sum + (products.find(p => p.id === id)?.price ?? 0), 0);
   const notify = (text: string) => { setToast(text); window.setTimeout(() => setToast(""), 2200); };
+  const normalizedQuery = query.trim().toLocaleLowerCase("es");
+  const searchResults = normalizedQuery.length < 2 ? [] : products.filter(product => `${product.name} ${product.note} ${product.category}`.toLocaleLowerCase("es").includes(normalizedQuery)).slice(0, 6);
+
+  useEffect(() => {
+    if (!search) return;
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") setSearch(false); };
+    document.addEventListener("keydown", close);
+    document.body.classList.add("search-is-open");
+    return () => { document.removeEventListener("keydown", close); document.body.classList.remove("search-is-open"); };
+  }, [search]);
 
   return <main className="storefront">
     <div className="topbar">ENVÍOS A TODO CHILE · COMPRA SEGURA</div>
-    <div className="home-hero-shell" style={locations.find(location=>location.show_in_hero)?.image_url?{backgroundImage:`url("${locations.find(location=>location.show_in_hero)?.image_url}")`}:undefined}>
+    <div className="home-hero-shell" style={{"--hero-desktop-image":heroImages.desktop?`url("${heroImages.desktop}")`:undefined,"--hero-mobile-image":heroImages.mobile?`url("${heroImages.mobile}")`:undefined} as CSSProperties}>
       <SiteHeader overlay cartCount={cart.length} onSearch={() => setSearch(!search)} onCart={() => setDrawer(true)}/>
-      {search && <div className="search-panel"><input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar por aroma o nota…"/><button onClick={() => setSearch(false)}>Cerrar</button></div>}
+      {search && <div className="search-overlay" role="dialog" aria-modal="true" aria-labelledby="search-title">
+        <button className="search-overlay__backdrop" onClick={() => setSearch(false)} aria-label="Cerrar búsqueda" />
+        <section className="search-panel">
+          <header><div><span>EXPLORA AROMA STUDIO</span><h2 id="search-title">¿Qué aroma buscas?</h2></div><button className="search-panel__close" onClick={() => setSearch(false)} aria-label="Cerrar búsqueda"><X /></button></header>
+          <div className="search-panel__field"><SearchIcon aria-hidden="true"/><input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Busca por nombre, aroma o nota…" aria-label="Buscar productos"/>{query && <button onClick={() => setQuery("")} aria-label="Limpiar búsqueda"><X /></button>}</div>
+          <div className="search-panel__content">
+            {query.trim().length < 2 ? <p className="search-panel__hint">Escribe al menos dos caracteres para comenzar.</p> : searchResults.length ? <div className="search-panel__results">{searchResults.map(product => <Link href={product.href} key={product.id} onClick={() => setSearch(false)}><span><Image src={product.image} alt="" fill sizes="72px" unoptimized/></span><div><small>{product.category}</small><strong>{product.name}</strong><p>{product.note || "Fragancia Aroma Studio"}</p></div><b>{money(product.price)}</b></Link>)}</div> : <div className="search-panel__empty"><strong>Sin resultados</strong><p>No encontramos productos para “{query.trim()}”. Prueba con otro aroma o categoría.</p><Link href="/productos" onClick={() => setSearch(false)}>VER TODO EL CATÁLOGO</Link></div>}
+          </div>
+        </section>
+      </div>}
       <section className="home-hero">
         <div className="hero-content">
           <h1><em>Descubre el aroma perfecto</em><br/>para cada espacio</h1>
@@ -83,15 +107,19 @@ export default function Storefront() {
         <h2 id="category-showcase-title">Categorías de productos</h2>
         <p>Descubre nuestras categorías y elige el formato que mejor acompaña tu espacio.</p>
       </header>
-      <div className="category-showcase__grid">
-        {homeCategories.map((category) => (
-          <Link className="category-showcase__card" href={`/productos?categoria=${category.slug}`} key={category.id}>
-            <span className="category-showcase__image">
-              {category.image_url && <Image src={category.image_url} alt={category.name} fill sizes="(max-width: 700px) 90vw, 25vw" unoptimized/>}
-            </span>
-            <h3>{category.name} <b aria-hidden="true">→</b></h3>
-          </Link>
-        ))}
+      <div className="category-carousel">
+        <button className="category-carousel__arrow category-carousel__arrow--previous" type="button" onClick={()=>moveCategories(-1)} aria-label="Categorías anteriores"><ChevronLeft aria-hidden="true"/></button>
+        <div className="category-showcase__grid" ref={categoryCarouselRef}>
+          {homeCategories.map((category) => (
+            <Link className="category-showcase__card" href={`/productos?categoria=${category.slug}`} key={category.id}>
+              <span className="category-showcase__image">
+                {category.image_url && <Image src={category.image_url} alt={category.name} fill sizes="(max-width: 700px) 90vw, 25vw" unoptimized/>}
+              </span>
+              <h3>{category.name} <b aria-hidden="true">→</b></h3>
+            </Link>
+          ))}
+        </div>
+        <button className="category-carousel__arrow category-carousel__arrow--next" type="button" onClick={()=>moveCategories(1)} aria-label="Categorías siguientes"><ChevronRight aria-hidden="true"/></button>
       </div>
     </section>
 
@@ -116,7 +144,7 @@ export default function Storefront() {
       </div>
     </section>
 
-    <section className="home-faq" aria-labelledby="home-faq-title"><header><span>¿TIENES DUDAS?</span><h2 id="home-faq-title">Preguntas frecuentes</h2></header><div>{faqs.map((faq,index)=><details key={faq.id} open={index===0}><summary>{faq.question}<b aria-hidden="true">+</b></summary><p>{faq.answer}</p></details>)}</div></section>
+    <section className="home-faq" aria-labelledby="home-faq-title"><header><span>¿TIENES DUDAS?</span><h2 id="home-faq-title">Preguntas frecuentes</h2></header><div>{faqs.map((faq)=><details key={faq.id}><summary>{faq.question}<b aria-hidden="true">+</b></summary><p>{faq.answer}</p></details>)}</div></section>
 
     <SiteFooter/>
 

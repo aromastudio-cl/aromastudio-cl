@@ -1,5 +1,6 @@
-const MAX_DIMENSION = 2000;
-const WEBP_QUALITY = 0.9;
+const MAX_DIMENSION = 1600;
+const WEBP_QUALITY = 0.84;
+const MAX_OUTPUT_BYTES = 4.5 * 1024 * 1024;
 const MAX_SOURCE_BYTES = 15 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -20,7 +21,13 @@ export async function compressProductImage(file: File): Promise<File> {
   context.imageSmoothingQuality = "high";
   context.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
-  const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error("No fue posible comprimir la imagen")), "image/webp", WEBP_QUALITY));
+  let quality = WEBP_QUALITY;
+  let blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error("No fue posible comprimir la imagen")), "image/webp", quality));
+  while (blob.size > MAX_OUTPUT_BYTES && quality > 0.5) {
+    quality -= 0.08;
+    blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error("No fue posible comprimir la imagen")), "image/webp", quality));
+  }
+  if (blob.size > MAX_OUTPUT_BYTES) throw new Error("La imagen no pudo reducirse bajo 4,5 MB. Selecciona una imagen más pequeña.");
   const baseName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9-_]+/g, "-");
   return new File([blob], `${baseName}.webp`, { type: "image/webp", lastModified: Date.now() });
 }

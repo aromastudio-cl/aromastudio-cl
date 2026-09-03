@@ -1,0 +1,27 @@
+/* Mantiene un corredor interactivo continuo entre cada enlace y su desplegable. */
+@media (min-width: 851px) {
+  .site-header .main-nav {
+    height: 100%;
+    align-items: stretch;
+  }
+
+  .site-header .main-nav > .nav-menu {
+    position: static;
+    height: 100%;
+    align-items: stretch;
+  }
+
+  .site-header .main-nav > .nav-menu > a {
+    display: flex;
+    height: 100%;
+    align-items: center;
+  }
+
+  .site-header .mega-menu {
+    top: 100%;
+  }
+
+  .site-header .mega-menu a {
+    cursor: pointer;
+  }
+}

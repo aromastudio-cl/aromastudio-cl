@@ -21,6 +21,7 @@ export default function MobileMenuDrawer({ open, onClose, categories = [] }: Mob
       <section><h2>Aromas</h2><div className="mobile-menu-drawer__aromas">{aromaLinks.map((item) => <Link href={item.href} onClick={onClose} key={item.name}><i className={`aroma-dot ${item.dotClass}`}/>{item.name}</Link>)}</div></section>
       <section><Link href="/productos" onClick={onClose}><h2>Catálogo</h2></Link>{categories.length > 0 && <div className="mobile-menu-drawer__links">{categories.map((category) => <Link href={`/productos?categoria=${category.slug}`} onClick={onClose} key={category.id}>{category.name}</Link>)}</div>}</section>
       <section><h2>Contacto</h2><div className="mobile-menu-drawer__links">{contactLinks.map((item) => item.external ? <a href={item.href} target="_blank" rel="noopener noreferrer" onClick={onClose} key={item.name}>{item.name}</a> : <Link href={item.href} onClick={onClose} key={item.name}>{item.name}</Link>)}</div></section>
+      <Link className="mobile-menu-drawer__account" href="/cuenta" onClick={onClose}>Mi cuenta</Link>
     </nav>
   </>;
 }

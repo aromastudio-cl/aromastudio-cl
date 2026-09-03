@@ -56,7 +56,7 @@ export default function SiteHeader({ cartCount = 0, onSearch, onCart, overlay = 
     </nav>
     <div className="header-tools">
       {onSearch ? <button className="header-tool desktop-search" onClick={onSearch} aria-label="Buscar productos"><Search aria-hidden="true" strokeWidth={1.7}/><span className="tool-label">BUSCAR</span></button> : <Link className="header-tool desktop-search" href="/productos" aria-label="Buscar productos"><Search aria-hidden="true" strokeWidth={1.7}/><span className="tool-label">BUSCAR</span></Link>}
-      <Link className="header-tool header-account" href="/admin" aria-label="Mi cuenta"><UserRound aria-hidden="true" /><span className="tool-label">CUENTA</span></Link>
+      <Link className="header-tool header-account" href="/cuenta" aria-label="Mi cuenta"><UserRound aria-hidden="true" /><span className="tool-label">CUENTA</span></Link>
       {onCart ? <button className="header-tool header-cart" onClick={onCart} aria-label={`Abrir carrito con ${cartCount} productos`}><ShoppingBag aria-hidden="true" strokeWidth={1.7}/><span className="tool-label">CARRITO</span><b>{cartCount}</b></button> : <Link className="header-tool header-cart" href="/productos" aria-label="Ver productos"><ShoppingBag aria-hidden="true" strokeWidth={1.7}/><span className="tool-label">PRODUCTOS</span></Link>}
     </div>
   </header><MobileMenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} categories={categories}/></>;
