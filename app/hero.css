@@ -485,7 +485,11 @@
     background: #eee7df;
   }
 
-  .mobile-category-carousel__image img { object-fit: cover; }
+  .mobile-category-carousel__image img {
+    object-fit: contain;
+    object-position: center;
+    padding: 10px;
+  }
 
   .mobile-category-carousel h3 {
     margin: 15px 0 8px;
