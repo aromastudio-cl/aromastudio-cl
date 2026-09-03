@@ -85,7 +85,7 @@ export default function Storefront() {
           <button onClick={() => setMobileMenu(value => !value)} aria-label={mobileMenu ? "Cerrar menú" : "Abrir menú"} aria-expanded={mobileMenu}>{mobileMenu ? <X/> : <Menu/>}</button>
           <button onClick={() => setSearch(value => !value)} aria-label="Buscar productos"><Search/></button>
         </div>
-        <Link className="mobile-public-cover__logo" href="/" aria-label="Aroma Studio, inicio"><Image src="/logo-hd.png" alt="Aroma Studio" width={94} height={86}/></Link>
+        <Link className="mobile-public-cover__logo" href="/" aria-label="Aroma Studio, inicio"><Image src="/logo-white-transparent.png" alt="Aroma Studio" width={94} height={86}/></Link>
         <div>
           <Link href="/admin" aria-label="Mi cuenta"><UserRound/></Link>
           <Link href="/tienda" aria-label="Ir a la tienda"><ShoppingBag/></Link>
