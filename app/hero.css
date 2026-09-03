@@ -204,8 +204,9 @@
     top: 44px !important;
     height: calc(100% - 44px) !important;
     object-fit: cover;
-    object-position: center;
+    object-position: center 45%;
     border-radius: 0 0 28px 28px;
+    transform: scale(1.12);
   }
 
   .mobile-public-cover__announcement {
