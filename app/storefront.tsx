@@ -71,6 +71,7 @@ export default function Storefront() {
 
   return <main>
     <section className="mobile-public-cover" aria-label="Portada de Aroma Studio">
+      <div className="mobile-public-cover__announcement">ENVÍOS A TODO CHILE</div>
       <Image
         className="mobile-public-cover__background"
         src="/mobile-home-spray-background.png"
