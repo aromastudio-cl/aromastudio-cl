@@ -99,7 +99,7 @@ export default function ProductDetail({ product }: { product: ProductDetailData 
   };
 
   return (
-    <main>
+    <main className="product-page">
       <SiteHeader cartCount={cartCount} onCart={() => setDrawer(true)} />
       <nav className="product-breadcrumb" aria-label="Migas de pan">
         <Link href="/">Inicio</Link><span>/</span>
