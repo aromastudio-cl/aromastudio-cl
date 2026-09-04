@@ -23,6 +23,7 @@ export default function Storefront({ catalogOnly = false }: { catalogOnly?: bool
   const [products, setProducts] = useState<Product[]>([]);
   const [homeCategories, setHomeCategories] = useState<Array<{ id: string; name: string; slug: string; image_url: string | null }>>([]);
   const [heroImages,setHeroImages]=useState({desktop:"",mobile:""});
+  const [heroCopy,setHeroCopy]=useState({accent:"Descubre el aroma perfecto",title:"para cada espacio",description:"Descubre fragancias que transforman tu hogar y tu día a día."});
   const [storesSection,setStoresSection]=useState({eyebrow:"TIENDAS OFICIALES",title:"Visítanos en nuestras tiendas",contentEyebrow:"AROMA STUDIO",contentTitle:"Encuentra tu aroma favorito",contentText:"Visita nuestros puntos de venta y descubre una selección de productos y aromas pensados para transformar tus espacios. Nuestro equipo estará disponible para orientarte.",image:"/sobre-nosotros-aromastudio.png"});
   const [faqs,setFaqs]=useState<Array<{id:string;question:string;answer:string}>>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -34,7 +35,7 @@ export default function Storefront({ catalogOnly = false }: { catalogOnly?: bool
   useEffect(() => {
     try { setCart(JSON.parse(localStorage.getItem("aroma-studio-cart") || "[]")); } catch { setCart([]); }
     supabase.from("categories").select("id,name,slug,image_url").eq("active", true).order("sort_order").then(({ data }) => setHomeCategories(data ?? []));
-    supabase.from("site_settings").select("hero_desktop_url,hero_mobile_url,stores_eyebrow,stores_title,stores_content_eyebrow,stores_content_title,stores_content_text,stores_image_url").eq("id",1).maybeSingle().then(({data})=>{if(data){setHeroImages({desktop:data.hero_desktop_url||"",mobile:data.hero_mobile_url||""});setStoresSection({eyebrow:data.stores_eyebrow||"TIENDAS OFICIALES",title:data.stores_title||"Visítanos en nuestras tiendas",contentEyebrow:data.stores_content_eyebrow||"AROMA STUDIO",contentTitle:data.stores_content_title||"Encuentra tu aroma favorito",contentText:data.stores_content_text||"",image:data.stores_image_url||"/sobre-nosotros-aromastudio.png"})}});
+    supabase.from("site_settings").select("hero_desktop_url,hero_mobile_url,hero_title_accent,hero_title,hero_description,stores_eyebrow,stores_title,stores_content_eyebrow,stores_content_title,stores_content_text,stores_image_url").eq("id",1).maybeSingle().then(({data})=>{if(data){setHeroImages({desktop:data.hero_desktop_url||"",mobile:data.hero_mobile_url||""});setHeroCopy({accent:data.hero_title_accent||"Descubre el aroma perfecto",title:data.hero_title||"para cada espacio",description:data.hero_description||"Descubre fragancias que transforman tu hogar y tu día a día."});setStoresSection({eyebrow:data.stores_eyebrow||"TIENDAS OFICIALES",title:data.stores_title||"Visítanos en nuestras tiendas",contentEyebrow:data.stores_content_eyebrow||"AROMA STUDIO",contentTitle:data.stores_content_title||"Encuentra tu aroma favorito",contentText:data.stores_content_text||"",image:data.stores_image_url||"/sobre-nosotros-aromastudio.png"})}});
     supabase.from("faqs").select("id,question,answer").eq("active",true).order("sort_order").then(({data})=>setFaqs(data??[]));
     supabase
       .from("products")
@@ -103,8 +104,8 @@ export default function Storefront({ catalogOnly = false }: { catalogOnly?: bool
       <SiteHeader overlay cartCount={cartCount} onCart={() => setDrawer(true)}/>
       <section className="home-hero">
         <div className="hero-content">
-          <h1><em>Descubre el aroma perfecto</em><br/>para cada espacio</h1>
-          <p>Descubre fragancias que transforman tu hogar<br/>y tu día a día.</p>
+          <h1><em>{heroCopy.accent}</em><br/>{heroCopy.title}</h1>
+          <p>{heroCopy.description}</p>
         </div>
       </section>
     </div>}
